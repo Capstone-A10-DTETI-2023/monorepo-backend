@@ -27,6 +27,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 	}
 	
 	var user model.User
+	var notifPref model.Notification
 	if err := ctx.BodyParser(&user); err != nil {
 		return err
 	}
@@ -36,6 +37,17 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 	}
 
 	if err := user.CreateUser(c.DB); err != nil {
+		return err
+	}
+
+	notifPref = model.Notification{
+		User_ID: user.ID,
+		Email: false,
+		Whatsapp: false,
+		Firebase: false,
+	}
+	
+	if err := notifPref.CreateNotification(c.DB); err != nil {
 		return err
 	}
 
@@ -115,10 +127,12 @@ func (c *UserController) UpdateUserByID(ctx *fiber.Ctx) error {
 	token := ctx.Cookies("token")
 	claims, err := middleware.ParseJWT(token)
 	userID, _ := strconv.Atoi(ctx.Params("id"))
-	if err != nil || claims.ExpiresAt <= 0 || claims.ID != uint(userID) || claims.Role_ID != 1 {
+	if err != nil || claims.ExpiresAt <= 0 || (claims.ID != uint(userID) && claims.Role_ID != 1) {
 		isAllowed = false
+	} else {
+		isAllowed = true
 	}
-	isAllowed = true
+	
 
 	if !isAllowed {
 		return fiber.ErrUnauthorized
