@@ -41,6 +41,7 @@ func main() {
 	model.MigrateUser(db)
 	model.MigrateRole(db)
 	model.MigratePermission(db)
+	model.MigrateNotification(db)
 	user := app.Group("/users")
 	user.Use(middleware.IsAuthenticated)
 	userController := &controller.UserController{DB: db}
@@ -58,6 +59,11 @@ func main() {
 	roleController := &controller.RoleController{DB: db}
 	role.Get("/", roleController.GetAllRole)
 	role.Post("/", roleController.CreateRole)
+
+	notif := app.Group("/notifpref")
+	notif.Use(middleware.IsAuthenticated)
+	notifController := &controller.NotifController{DB: db}
+	notif.Put("/:userID", notifController.UpdateNotifPreference)
 
 	listenAddr := fmt.Sprintf("%s:%s", APP_HOST, APP_PORT)
     log.Fatal(app.Listen(listenAddr))
