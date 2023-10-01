@@ -24,7 +24,7 @@ func GenerateJWT (id uint, role_id uint) (string, error) {
 	}
 	claims.IssuedAt = time.Now().Unix()
 	claims.ExpiresAt = time.Now().Add(time.Hour * 72).Unix()
-	claims.Issuer = "capstone-a10-dteti-2023"
+	claims.Issuer = os.Getenv("JWT_ISSUER")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -47,7 +47,7 @@ func IsAuthenticated (c *fiber.Ctx) error {
 	token := c.Cookies("token")
 	claims, err := ParseJWT(token)
 
-	if err != nil || claims.ExpiresAt <= 0 {
+	if err != nil || claims.ExpiresAt <= 0 || claims.Issuer != os.Getenv("JWT_ISSUER") {
 		return fiber.ErrUnauthorized
 	}
 
