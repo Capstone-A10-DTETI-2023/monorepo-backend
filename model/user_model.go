@@ -1,7 +1,6 @@
 package model
 
 import (
-	"crypto/rand"
 	"errors"
 
 	argon2 "github.com/mdouchement/simple-argon2"
@@ -46,11 +45,6 @@ func (u *User) HashPassword() error {
 
 	if u.Password == "" {
         return errors.New("password cannot be empty")
-    }
-	
-	salt := make([]byte, 16)
-    if _, err := rand.Read(salt); err != nil {
-        return err
     }
 	
 	hash, _ := argon2.GenerateFromPasswordString(u.Password, argon2.Default)
