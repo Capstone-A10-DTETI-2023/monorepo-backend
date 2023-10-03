@@ -43,6 +43,7 @@ func main() {
 	model.MigratePermission(db)
 	model.MigrateNotification(db)
 	model.MigrateNode(db)
+	model.MigrateSensor(db)
 
 	user := app.Group("/users")
 	user.Use(middleware.IsAuthenticated)
@@ -72,6 +73,12 @@ func main() {
 	nodeController := &controller.NodeController{DB: db}
 	node.Post("/", nodeController.RegisterNewNode)
 	node.Get("/", nodeController.GetAllNodes)
+
+	sensor := app.Group("/sensors")
+	sensor.Use(middleware.IsAuthenticated)
+	sensorController := &controller.SensorController{DB: db}
+	sensor.Post("/", sensorController.AddNewSensor)
+	sensor.Get("/", sensorController.GetAllSensors)
 
 	listenAddr := fmt.Sprintf("%s:%s", APP_HOST, APP_PORT)
     log.Fatal(app.Listen(listenAddr))
