@@ -132,7 +132,6 @@ func (c *UserController) UpdateUserByID(ctx *fiber.Ctx) error {
 	} else {
 		isAllowed = true
 	}
-	
 
 	if !isAllowed {
 		return fiber.ErrUnauthorized
@@ -149,6 +148,10 @@ func (c *UserController) UpdateUserByID(ctx *fiber.Ctx) error {
 	
 	if claims.Role_ID != 1 && user.RoleID == 1 {
 		return fiber.ErrUnauthorized
+	}
+
+	if err := user.HashPassword(); err != nil {
+		return err
 	}
 
 	if err := user.UpdateUser(c.DB); err != nil {
