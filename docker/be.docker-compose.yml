@@ -1,0 +1,21 @@
+version: '3'
+services:
+  capstone_be:
+    image: yosefadi/capstone_be:latest
+    container_name: capstone_be
+    restart: always
+    env_file:
+      - .env.server
+    networks:
+      - gateway_proxymanager
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    logging:
+      driver: json-file
+      options:
+        max-size: 1g
+
+networks:
+  gateway_proxymanager:
+    external: true
