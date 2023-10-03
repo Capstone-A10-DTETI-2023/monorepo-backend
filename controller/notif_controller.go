@@ -45,3 +45,46 @@ func (c *NotifController) UpdateNotifPreference(ctx *fiber.Ctx) error {
 		"data":    notifPref,
 	})
 }
+
+func (c *NotifController) GetNotifPreference(ctx *fiber.Ctx) error {
+	var isAllowed bool
+	token := ctx.Cookies("token")
+	claims, err := middleware.ParseJWT(token)
+	userID, _ := strconv.Atoi(ctx.Params("userID"))
+	if err != nil || claims.ExpiresAt <= 0 || (claims.ID != uint(userID) && claims.Role_ID != 1) {
+		isAllowed = false
+	} else {
+		isAllowed = true
+	}
+
+	if !isAllowed {
+		return fiber.ErrUnauthorized
+	}
+
+	var notifPref model.Notification
+	if err := c.DB.Where("user_id = ?", userID).First(&notifPref).Error; err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    notifPref,
+	})
+}
+
+func (c *NotifController) GetAllNotifPref(ctx *fiber.Ctx) error {
+	isAdmin := middleware.IsAdmin(ctx)
+	if !isAdmin {
+		return fiber.ErrUnauthorized
+	}
+
+	var notifPref []model.Notification
+	if err := c.DB.Find(&notifPref).Error; err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    notifPref,
+	})
+}

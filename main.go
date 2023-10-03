@@ -63,10 +63,12 @@ func main() {
 	role.Get("/", roleController.GetAllRole)
 	role.Post("/", roleController.CreateRole)
 
-	notif := app.Group("/notifpref")
+	notif := app.Group("/notif")
 	notif.Use(middleware.IsAuthenticated)
 	notifController := &controller.NotifController{DB: db}
-	notif.Put("/:userID", notifController.UpdateNotifPreference)
+	notif.Get("/user", notifController.GetAllNotifPref)
+	notif.Put("/user/:userID", notifController.UpdateNotifPreference)
+	notif.Get("/user/:userID", notifController.GetNotifPreference)
 
 	node := app.Group("/nodes")
 	node.Use(middleware.IsAuthenticated)
