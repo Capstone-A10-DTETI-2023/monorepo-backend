@@ -4,16 +4,17 @@ import "gorm.io/gorm"
 
 type Notification struct {
 	gorm.Model
-	User_ID 	uint   	`gorm:"unique; not null"`
 	Email		bool  	`gorm:"not null"`
 	Whatsapp	bool  	`gorm:"not null"`
 	Firebase	bool  	`gorm:"not null"`
+	User		User 	`gorm:"unique; foreignKey:UserID"`
+	UserID		uint
 }
 
 func MigrateNotification(db *gorm.DB) {
 	db.AutoMigrate(&Notification{})
 	db.FirstOrCreate(&Notification{}, Notification{
-		User_ID: 1,
+		UserID: 1,
 		Email: true,
 		Whatsapp: true,
 		Firebase: true,

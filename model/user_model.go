@@ -10,11 +10,12 @@ import (
 
 type User struct {
 	gorm.Model
-    Name 		string `gorm:"not null"`
-	Role_ID		uint   `gorm:"not null"`
-    Email		string `gorm:"not null"`
-    Phone_Num   string `gorm:"not null"`
-    Password  	string `gorm:"not null"`
+    Name 		string 	`gorm:"not null"`
+    Email		string 	`gorm:"not null"`
+    Phone_Num   string 	`gorm:"not null"`
+    Password  	string 	`gorm:"not null"`
+	Role		Role 	`gorm:"foreignKey:RoleID"`
+	RoleID		uint
 }
 
 func (u *User) TableName() string {
@@ -23,6 +24,13 @@ func (u *User) TableName() string {
 
 func MigrateUser(db *gorm.DB) {
 	db.AutoMigrate(&User{})
+	db.FirstOrCreate(&User{}, User{
+		Name: "admin",
+		Email: "superadmin@gmail.com",
+		Phone_Num: "081234567890",
+		Password: "$argon2id$v=19$m=65536,t=3,p=2$y40oO1YfcyHC8dQ68RinSA$LaoN+sIy4LT/uOdGGyPuqbXO09JbVPhbOWQqBFN53To",
+		RoleID: 1,
+	})
 }
 
 func (u *User) CreateUser(db *gorm.DB) error {

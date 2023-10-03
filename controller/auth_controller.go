@@ -39,7 +39,7 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	token, err := middleware.GenerateJWT(user.ID, user.Role_ID)
+	token, err := middleware.GenerateJWT(user.ID, user.RoleID)
 
 	if err != nil {
 		return fiber.ErrInternalServerError
@@ -57,7 +57,7 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 		"data": LoginResponse{
 			AccessToken:  token,
 			ID: 		   user.ID,
-			Role_ID: 	   user.Role_ID,
+			Role_ID: 	   user.RoleID,
 		},
 	})
 }

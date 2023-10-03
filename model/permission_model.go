@@ -4,16 +4,17 @@ import "gorm.io/gorm"
 
 type Permission struct {
 	gorm.Model
-	Role_ID		uint   `gorm:"not null"`
-	Read_Realtime_Data bool `gorm:"not null"`
-	Read_Historical_Data bool `gorm:"not null"`
-	Change_Actuator bool `gorm:"not null"`
+	Read_Realtime_Data 		bool `gorm:"not null"`
+	Read_Historical_Data 	bool `gorm:"not null"`
+	Change_Actuator 		bool `gorm:"not null"`
+	Role 					Role `gorm:"unique; foreignKey:RoleID"`
+	RoleID 					uint
 }
 
 func MigratePermission(db *gorm.DB) {
 	db.AutoMigrate(&Permission{})
 	db.FirstOrCreate(&Permission{}, Permission{
-		Role_ID: 1,
+		RoleID: 1,
 		Read_Realtime_Data: true,
 		Read_Historical_Data: true,
 		Change_Actuator: true,

@@ -41,7 +41,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 	}
 
 	notifPref = model.Notification{
-		User_ID: user.ID,
+		UserID: user.ID,
 		Email: false,
 		Whatsapp: false,
 		Firebase: false,
@@ -54,7 +54,7 @@ func (c *UserController) CreateUser(ctx *fiber.Ctx) error {
 	var userResponses []UserResponse
 	userResponses = append(userResponses, UserResponse{
 		ID:        	user.ID,
-		Role_ID:  	user.Role_ID,
+		Role_ID:  	user.RoleID,
 		Name:      	user.Name,
 		Email:     	user.Email,
 		Phone_Num: 	user.Phone_Num,
@@ -81,7 +81,7 @@ func (c *UserController) GetAllUsers(ctx *fiber.Ctx) error {
     for _, user := range users {
         userResponses = append(userResponses, UserResponse{
             ID:        	user.ID,
-			Role_ID: 	user.Role_ID,
+			Role_ID: 	user.RoleID,
             Name:      	user.Name,
             Email:     	user.Email,
             Phone_Num: 	user.Phone_Num,
@@ -109,7 +109,7 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 	var userResponses []UserResponse
 	userResponses = append(userResponses, UserResponse{
 		ID:        	user.ID,
-		Role_ID:  	user.Role_ID,
+		Role_ID:  	user.RoleID,
 		Name:      	user.Name,
 		Email:     	user.Email,
 		Phone_Num: 	user.Phone_Num,
@@ -147,7 +147,7 @@ func (c *UserController) UpdateUserByID(ctx *fiber.Ctx) error {
 		return err
 	}
 	
-	if claims.Role_ID != 1 && user.Role_ID == 1 {
+	if claims.Role_ID != 1 && user.RoleID == 1 {
 		return fiber.ErrUnauthorized
 	}
 
@@ -158,7 +158,7 @@ func (c *UserController) UpdateUserByID(ctx *fiber.Ctx) error {
 	var userResponses []UserResponse
 	userResponses = append(userResponses, UserResponse{
 		ID:        	user.ID,
-		Role_ID:  	user.Role_ID,
+		Role_ID:  	user.RoleID,
 		Name:      	user.Name,
 		Email:     	user.Email,
 		Phone_Num: 	user.Phone_Num,

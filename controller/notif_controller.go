@@ -34,7 +34,7 @@ func (c *NotifController) UpdateNotifPreference(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	notifPref.User_ID = uint(userID)
+	notifPref.UserID = uint(userID)
 	notifPref.ID = uint(userID)
 	if err := notifPref.UpdateNotification(c.DB); err != nil {
 		return err

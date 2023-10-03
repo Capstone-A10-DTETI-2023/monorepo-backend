@@ -38,8 +38,8 @@ func main() {
         return c.SendString("Hello, World!")
     })
 
-	model.MigrateUser(db)
 	model.MigrateRole(db)
+	model.MigrateUser(db)
 	model.MigratePermission(db)
 	model.MigrateNotification(db)
 	user := app.Group("/users")
