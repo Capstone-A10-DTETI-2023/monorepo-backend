@@ -11,6 +11,12 @@ type Notification struct {
 	UserID		uint
 }
 
+type WhatsAppNotificationRequest struct {
+	UserID uint `json:"UserID"`
+	Message string `json:"Message"`
+	Schedule string `json:"Schedule"`
+}
+
 func MigrateNotification(db *gorm.DB) {
 	db.AutoMigrate(&Notification{})
 	db.FirstOrCreate(&Notification{}, Notification{

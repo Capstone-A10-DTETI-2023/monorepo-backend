@@ -69,6 +69,7 @@ func main() {
 	notif.Get("/user", notifController.GetAllNotifPref)
 	notif.Put("/user/:userID", notifController.UpdateNotifPreference)
 	notif.Get("/user/:userID", notifController.GetNotifPreference)
+	notif.Post("/testing/wa", notifController.SendWhatsAppNotification)
 
 	node := app.Group("/nodes")
 	node.Use(middleware.IsAuthenticated)
