@@ -17,3 +17,5 @@ jobs:
       run: docker rmi -f yosefadi/capstone_be:latest
     - name: Run Docker Container
       run: docker compose -f ./docker/be.docker-compose.yml up -d
+      env:
+        TOKEN_WA: ${{ secrets.TOKEN_WA }}
