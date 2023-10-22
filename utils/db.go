@@ -13,20 +13,20 @@ import (
 )
 
 var (
-	dbHost 		= os.Getenv("DB_HOST")
-	dbPort 		= os.Getenv("DB_PORT")
-	dbUser 		= os.Getenv("DB_USER")
-	dbPass 		= os.Getenv("DB_PASS")
-	dbName 		= os.Getenv("DB_NAME")
-	dbSSLMode 	= os.Getenv("DB_SSLMODE")
-	dbTimeZone 	= os.Getenv("DB_TIMEZONE")
+	_dbHost 		= os.Getenv("DB_HOST")
+	_dbPort 		= os.Getenv("DB_PORT")
+	_dbUser 		= os.Getenv("DB_USER")
+	_dbPass 		= os.Getenv("DB_PASS")
+	_dbName 		= os.Getenv("DB_NAME")
+	_dbSSLMode 		= os.Getenv("DB_SSLMODE")
+	_dbTimeZone 	= os.Getenv("DB_TIMEZONE")
 	dbMinConn, _ 	= strconv.Atoi(os.Getenv("DB_MIN_CONN"))
 	dbMaxConn, _ 	= strconv.Atoi(os.Getenv("DB_MAX_CONN"))
 	dbMaxLT, _ 		= strconv.Atoi(os.Getenv("DB_MAX_LIFETIME"))
 )
 
 func ConnectDB() *gorm.DB {
-	dsn := "host=" + dbHost + " user=" + dbUser + " password=" + dbPass + " dbname=" + dbName + " port=" + dbPort + " sslmode=" + dbSSLMode + " TimeZone=" + dbTimeZone
+	dsn := "host=" + _dbHost + " user=" + _dbUser + " password=" + _dbPass + " dbname=" + _dbName + " port=" + _dbPort + " sslmode=" + _dbSSLMode + " TimeZone=" + _dbTimeZone
 //   dsn := "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
@@ -40,7 +40,7 @@ func ConnectDB() *gorm.DB {
 	dbPool.SetConnMaxLifetime(time.Duration(dbMaxLT)*time.Hour)
 	
 	if err := dbPool.Ping(); err == nil {
-		log.Println("Database connection established")
+		log.Printf("Database connection established: %s", dsn)
 	}
 
   	return db

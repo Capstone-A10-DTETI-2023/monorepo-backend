@@ -9,3 +9,23 @@ services:
       POSTGRES_PASSWORD: example
     ports:
       - 5432:5432
+  
+  questdb:
+    image: questdb/questdb
+    container_name: questdb
+    restart: always
+    ports:
+      - 9000:9000
+      - 9009:9009
+      - 8812:8812
+      - 9003:9003
+    volumes:
+      - ./questdb:/root/.questdb
+    environment:
+      - QDB_LOG_W_STDOUT_LEVEL=ERROR
+      - QDB_LOG_W_FILE_LEVEL=ERROR
+      - QDB_LOG_W_HTTP_MIN_LEVEL=ERROR
+      - QDB_SHARED_WORKER_COUNT=2 # Amount of worker threads
+      - QDB_PG_USER=questdb # postgresql user -> Configured in .env file
+      - QDB_PG_PASSWORD=password # postgresql password -> Configured in .env file
+      - QDB_TELEMETRY_ENABLED=false # Disable telemetry

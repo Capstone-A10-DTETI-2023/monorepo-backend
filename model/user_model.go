@@ -24,6 +24,9 @@ func (u *User) TableName() string {
 
 func MigrateUser(db *gorm.DB) {
 	db.AutoMigrate(&User{})
+}
+
+func BootstrapAccount(db *gorm.DB) {
 	db.FirstOrCreate(&User{}, User{
 		Name: "admin",
 		Email: "superadmin@gmail.com",

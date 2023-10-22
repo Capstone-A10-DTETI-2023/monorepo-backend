@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -24,6 +25,12 @@ func main() {
 	
     app := fiber.New()
 	db := utils.ConnectDB()
+	dbTs := utils.ConnectTSDB()
+	if err := dbTs.Ping(context.Background()); err != nil {
+		panic(err)
+	}
+	defer dbTs.Close(context.Background())
+	log.Printf("Connected to TSDB")
 
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
@@ -44,6 +51,8 @@ func main() {
 	model.MigrateNotification(db)
 	model.MigrateNode(db)
 	model.MigrateSensor(db)
+
+	model.MigrateNodeData()
 
 	user := app.Group("/users")
 	user.Use(middleware.IsAuthenticated)
@@ -82,6 +91,10 @@ func main() {
 	sensorController := &controller.SensorController{DB: db}
 	sensor.Post("/", sensorController.AddNewSensor)
 	sensor.Get("/", sensorController.GetAllSensors)
+
+	sensorData := app.Group("/tsdata")
+	sensorData.Use(middleware.IsAuthenticated)
+	sensorData.Post("/sensor", controller.InsertDataSensor)
 
 	listenAddr := fmt.Sprintf("%s:%s", APP_HOST, APP_PORT)
     log.Fatal(app.Listen(listenAddr))
