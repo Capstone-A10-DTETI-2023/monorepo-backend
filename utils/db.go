@@ -40,7 +40,7 @@ func ConnectDB() *gorm.DB {
 	dbPool.SetConnMaxLifetime(time.Duration(dbMaxLT)*time.Hour)
 	
 	if err := dbPool.Ping(); err == nil {
-		log.Printf("Database connection established: %s", dsn)
+		log.Printf("Connected to DB Postgres")
 	}
 
   	return db

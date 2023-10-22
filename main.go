@@ -18,20 +18,29 @@ import (
 )
 
 func main() {
+	// Initialize Go Fiber Framework
 	var (
-		APP_HOST = os.Getenv("APP_HOST")
-		APP_PORT = os.Getenv("APP_PORT")
+		_appHost = os.Getenv("APP_HOST")
+		_appPort = os.Getenv("APP_PORT")
 	)
-	
     app := fiber.New()
+
+	// Initialize DB Connection with GORM to PostgreSQL
 	db := utils.ConnectDB()
+
+	// Initialize DB Connection with PGX to QuestDB
 	dbTs := utils.ConnectTSDB()
 	if err := dbTs.Ping(context.Background()); err != nil {
 		panic(err)
 	}
 	defer dbTs.Close(context.Background())
-	log.Printf("Connected to TSDB")
+	log.Printf("Connected to TSDB QuestDB")
 
+	// Initialize MQTT Connection
+	mqtt := utils.ConnectMQTT()
+	defer mqtt.Disconnect(250)
+
+	// Initialize Fiber Middleware
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
@@ -40,20 +49,20 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	
-	app.Get("/ping", func (c *fiber.Ctx) error {
-        return c.SendString("Hello, World!")
-    })
-
+	// Initialize DB Migration
 	model.MigrateRole(db)
 	model.MigrateUser(db)
 	model.MigratePermission(db)
 	model.MigrateNotification(db)
 	model.MigrateNode(db)
 	model.MigrateSensor(db)
-
 	model.MigrateNodeData()
-
+	
+	// Initialize Fiber Routes
+	app.Get("/ping", func (c *fiber.Ctx) error {
+        return c.SendString("Hello, World!")
+    })
+	
 	user := app.Group("/users")
 	user.Use(middleware.IsAuthenticated)
 	userController := &controller.UserController{DB: db}
@@ -96,7 +105,8 @@ func main() {
 	sensorData.Use(middleware.IsAuthenticated)
 	sensorData.Post("/sensor", controller.InsertDataSensor)
 
-	listenAddr := fmt.Sprintf("%s:%s", APP_HOST, APP_PORT)
+	// Start Fiber App
+	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
     log.Fatal(app.Listen(listenAddr))
 
 }
