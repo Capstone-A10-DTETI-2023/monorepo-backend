@@ -19,3 +19,5 @@ jobs:
       run: docker compose -f ./docker/be.docker-compose.yml up -d
       env:
         TOKEN_WA: ${{ secrets.TOKEN_WA }}
+        MQTT_USER: ${{ secrets.MQTT_USER }}
+        MQTT_PASS: ${{ secrets.MQTT_PASS }}
