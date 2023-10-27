@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/consumer"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/controller"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/middleware"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
@@ -56,8 +57,9 @@ func server() {
 	log.Printf("Connected to TSDB QuestDB")
 
 	// Initialize MQTT Connection
-	mqtt := utils.ConnectMQTT()
+	mqtt := consumer.ConnectMQTT()
 	defer mqtt.Disconnect(250)
+	consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
 
 	// Initialize Fiber Middleware
 	app.Use(recover.New())
