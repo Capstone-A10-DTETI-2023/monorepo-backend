@@ -19,11 +19,14 @@ type WhatsAppNotificationRequest struct {
 
 func MigrateNotification(db *gorm.DB) {
 	db.AutoMigrate(&Notification{})
+}
+
+func BootstrapAccountNotif(db *gorm.DB) {
 	db.FirstOrCreate(&Notification{}, Notification{
-		UserID: 1,
 		Email: true,
 		Whatsapp: true,
 		Firebase: true,
+		UserID: 1,
 	})
 }
 
