@@ -13,8 +13,17 @@ type Permission struct {
 
 func MigratePermission(db *gorm.DB) {
 	db.AutoMigrate(&Permission{})
+}
+
+func BootstrapPermission(db *gorm.DB) {
 	db.FirstOrCreate(&Permission{}, Permission{
 		RoleID: 1,
+		Read_Realtime_Data: true,
+		Read_Historical_Data: true,
+		Change_Actuator: true,
+	})
+	db.FirstOrCreate(&Permission{}, Permission{
+		RoleID: 2,
 		Read_Realtime_Data: true,
 		Read_Historical_Data: true,
 		Change_Actuator: true,

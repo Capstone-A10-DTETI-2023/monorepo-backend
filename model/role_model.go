@@ -9,8 +9,14 @@ type Role struct {
 
 func MigrateRole(db *gorm.DB) {
 	db.AutoMigrate(&Role{})
+}
+
+func BootstrapRole(db *gorm.DB) {
 	db.FirstOrCreate(&Role{}, Role{
 		Name: "SUPERADMIN",
+	})
+	db.FirstOrCreate(&Role{}, Role{
+		Name: "TEKNISI",
 	})
 }
 

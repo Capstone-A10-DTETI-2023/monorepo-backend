@@ -18,7 +18,26 @@ import (
 )
 
 func main() {
-	// Initialize Go Fiber Framework
+	if len(os.Args) < 2 {
+		log.Fatal("Missing argument. Please specify either 'server', 'bootstrap', or 'migrate'")
+	}
+
+	runArgs := os.Args[1]
+	switch runArgs {
+	case "server":
+		migrate()
+		server()
+	case "bootstrap":
+		migrate()
+		bootstrap()
+	case "migrate":
+		migrate()
+	default:
+		log.Fatal("Invalid argument")
+	}
+}
+
+func server() {
 	var (
 		_appHost = os.Getenv("APP_HOST")
 		_appPort = os.Getenv("APP_PORT")
@@ -48,15 +67,6 @@ func main() {
 		AllowHeaders:     "*",
 		AllowCredentials: true,
 	}))
-
-	// Initialize DB Migration
-	model.MigrateRole(db)
-	model.MigrateUser(db)
-	model.MigratePermission(db)
-	model.MigrateNotification(db)
-	model.MigrateNode(db)
-	model.MigrateSensor(db)
-	model.MigrateNodeData()
 	
 	// Initialize Fiber Routes
 	app.Get("/ping", func (c *fiber.Ctx) error {
@@ -108,5 +118,34 @@ func main() {
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
     log.Fatal(app.Listen(listenAddr))
+}
 
+func migrate() error {
+	// Initialize DB Connection with GORM to PostgreSQL
+	db := utils.ConnectDB()
+
+	// Initialize DB Migration
+	model.MigrateRole(db)
+	model.MigrateUser(db)
+	model.MigratePermission(db)
+	model.MigrateNotification(db)
+	model.MigrateNode(db)
+	model.MigrateSensor(db)
+	model.MigrateNodeData()
+
+	log.Println("Migration completed")
+	return nil
+}
+
+func bootstrap() error {
+	// Initialize DB Connection with GORM to PostgreSQL
+	db := utils.ConnectDB()
+
+	// Initialize DB Bootstrap
+	model.BootstrapRole(db)
+	model.BootstrapAccount(db)
+	model.BootstrapAccountNotif(db)
+	model.BootstrapPermission(db)
+	log.Println("Bootstrap completed")
+	return nil
 }

@@ -15,4 +15,4 @@ COPY --from=builder /go/src/main .
 
 FROM scratch AS runner
 COPY --from=intermediate / /
-CMD ["/home/capstone/bin/main"]
+CMD ["/home/capstone/bin/main", "server"]
