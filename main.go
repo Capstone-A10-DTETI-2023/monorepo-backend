@@ -57,9 +57,11 @@ func server() {
 	log.Printf("Connected to TSDB QuestDB")
 
 	// Initialize MQTT Connection
-	mqtt := consumer.ConnectMQTT()
-	defer mqtt.Disconnect(250)
-	consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
+	go func(){
+		mqtt := consumer.ConnectMQTT()
+		defer mqtt.Disconnect(250)
+		consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
+	}()
 
 	// Initialize Fiber Middleware
 	app.Use(recover.New())
@@ -92,6 +94,12 @@ func server() {
 	roleController := &controller.RoleController{DB: db}
 	role.Get("/", roleController.GetAllRole)
 	role.Post("/", roleController.CreateRole)
+	role.Put("/:id", roleController.UpdateRole)
+
+	permissions := app.Group("/permissions")
+	permissions.Use(middleware.IsAuthenticated)
+	permissionController := &controller.PermissionController{DB: db}
+	permissions.Get("/", permissionController.GetAllPermission)
 
 	notif := app.Group("/notif")
 	notif.Use(middleware.IsAuthenticated)
