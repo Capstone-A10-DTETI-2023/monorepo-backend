@@ -4,9 +4,11 @@ import "gorm.io/gorm"
 
 type Permission struct {
 	gorm.Model
-	Read_Realtime_Data 		bool `gorm:"not null"`
-	Read_Historical_Data 	bool `gorm:"not null"`
-	Change_Actuator 		bool `gorm:"not null"`
+	Read_Realtime_Data 		bool `gorm:"not null default:true"`
+	Read_Historical_Data 	bool `gorm:"not null default:false"`
+	Change_Actuator 		bool `gorm:"not null default:false"`
+	User_Management 		bool `gorm:"not null default:false"`
+	Node_Management 		bool `gorm:"not null default:false"`
 	Role 					Role `gorm:"unique; foreignKey:RoleID"`
 	RoleID 					uint
 }
@@ -21,12 +23,16 @@ func BootstrapPermission(db *gorm.DB) {
 		Read_Realtime_Data: true,
 		Read_Historical_Data: true,
 		Change_Actuator: true,
+		User_Management: true,
+		Node_Management: true,
 	})
 	db.FirstOrCreate(&Permission{}, Permission{
 		RoleID: 2,
 		Read_Realtime_Data: true,
 		Read_Historical_Data: true,
 		Change_Actuator: true,
+		User_Management: false,
+		Node_Management: false,
 	})
 }
 
