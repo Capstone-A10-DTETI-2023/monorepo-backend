@@ -6,6 +6,8 @@ services:
     restart: always
     env_file:
       - .env.server
+    environment:
+      TOKEN_WA: ${TOKEN_WA}
     networks:
       - gateway_proxymanager
     build:
