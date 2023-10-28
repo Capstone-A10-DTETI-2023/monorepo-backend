@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"strconv"
+
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/middleware"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
 	"github.com/gofiber/fiber/v2"
@@ -46,5 +48,40 @@ func (c *PermissionController) GetAllPermission(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{
 		"message": "success",
 		"data":   permResponses,
+	})
+}
+
+func (c *PermissionController) UpdatePermission(ctx *fiber.Ctx) error {
+	if isAdmin := middleware.IsAdmin(ctx); !isAdmin {
+		return fiber.ErrUnauthorized
+	}
+
+	roleID, _ := strconv.Atoi(ctx.Params("id"))
+
+	var perms model.Permission
+	if err := c.DB.Where("role_id = ?", roleID).First(&perms).Error; err != nil {
+		return err
+	}
+
+	if err := ctx.BodyParser(&perms); err != nil {
+		return err
+	}
+
+	if err := perms.UpdatePermission(c.DB); err != nil {
+		return err
+	}
+
+	permsRes := PermissionResponse{
+		RoleID: perms.RoleID,
+		Read_Realtime_Data: perms.Read_Realtime_Data,
+		Read_Historical_Data: perms.Read_Historical_Data,
+		Change_Actuator: perms.Change_Actuator,
+		User_Management: perms.User_Management,
+		Node_Management: perms.Node_Management,
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    permsRes,
 	})
 }

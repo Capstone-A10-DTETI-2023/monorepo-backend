@@ -100,6 +100,7 @@ func server() {
 	permissions.Use(middleware.IsAuthenticated)
 	permissionController := &controller.PermissionController{DB: db}
 	permissions.Get("/", permissionController.GetAllPermission)
+	permissions.Put("/:id", permissionController.UpdatePermission)
 
 	notif := app.Group("/notif")
 	notif.Use(middleware.IsAuthenticated)
