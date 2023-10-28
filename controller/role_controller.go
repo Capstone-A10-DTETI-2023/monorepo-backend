@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"strconv"
+
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/middleware"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
 	"github.com/gofiber/fiber/v2"
@@ -66,7 +68,13 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error{
 		return fiber.ErrUnauthorized
 	}
 
+	roleID, _ := strconv.Atoi(ctx.Params("id"))
+
 	var role model.Role
+	if err := c.DB.Where("id = ?", roleID).First(&role).Error; err != nil {
+		return err
+	}
+
 	if err := ctx.BodyParser(&role); err != nil {
 		return err
 	}
