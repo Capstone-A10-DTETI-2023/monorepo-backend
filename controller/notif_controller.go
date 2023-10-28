@@ -17,6 +17,13 @@ type NotifController struct {
 	DB *gorm.DB
 }
 
+type NotificationResponse struct {
+	UserID 		uint   `json:"user_id"`
+	Email 		bool   `json:"email"`
+	Whatsapp 	bool   `json:"whatsapp"`
+	Firebase 	bool   `json:"firebase"`
+}
+
 func (c *NotifController) UpdateNotifPreference(ctx *fiber.Ctx) error {
 	var isAllowed bool
 
@@ -70,9 +77,16 @@ func (c *NotifController) GetNotifPreference(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	notifPrefRes := NotificationResponse{
+		UserID: 	notifPref.UserID,
+		Email: 		notifPref.Email,
+		Whatsapp: 	notifPref.Whatsapp,
+		Firebase: 	notifPref.Firebase,
+	}
+
 	return ctx.JSON(fiber.Map{
 		"message": "success",
-		"data":    notifPref,
+		"data":    notifPrefRes,
 	})
 }
 
@@ -87,9 +101,19 @@ func (c *NotifController) GetAllNotifPref(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	var notifPrefResponses []NotificationResponse
+	for _, notif := range notifPref {
+		notifPrefResponses = append(notifPrefResponses, NotificationResponse{
+			UserID: 	notif.UserID,
+			Email: 		notif.Email,
+			Whatsapp: 	notif.Whatsapp,
+			Firebase: 	notif.Firebase,
+		})
+	}
+
 	return ctx.JSON(fiber.Map{
 		"message": "success",
-		"data":    notifPref,
+		"data":    notifPrefResponses,
 	})
 }
 
