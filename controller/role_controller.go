@@ -42,6 +42,39 @@ func (c *RoleController) CreateRole(ctx *fiber.Ctx) error{
 		return err
 	}
 
+	permsRole := model.Permission{
+		RoleID: role.ID,
+		Read_Realtime_Data: true,
+		Read_Historical_Data: false,
+		Change_Actuator: false,
+		User_Management: false,
+		Node_Management: false,
+	}
+
+	if err := permsRole.CreatePermission(c.DB); err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    role,
+	})
+}
+
+func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error{
+	if isAdmin := middleware.IsAdmin(ctx); !isAdmin {
+		return fiber.ErrUnauthorized
+	}
+
+	var role model.Role
+	if err := ctx.BodyParser(&role); err != nil {
+		return err
+	}
+
+	if err := role.UpdateRole(c.DB); err != nil {
+		return err
+	}
+
 	return ctx.JSON(fiber.Map{
 		"message": "success",
 		"data":    role,
