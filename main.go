@@ -88,6 +88,7 @@ func server() {
 	auth := app.Group("/auth")
 	authController := &controller.AuthController{DB: db}
 	auth.Post("/login", authController.Login)
+	auth.Post("/reset-password", authController.ResetPassword)
 
 	role := app.Group("/roles")
 	role.Use(middleware.IsAuthenticated)
