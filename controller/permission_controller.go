@@ -54,6 +54,19 @@ func (c *PermissionController) GetAllPermission(ctx *fiber.Ctx) error {
 func (c *PermissionController) GetPermissionsByID(ctx *fiber.Ctx) error {
 	roleID, _ := strconv.Atoi(ctx.Params("id"))
 
+	token := ctx.Cookies("token")
+	claims, err := middleware.ParseJWT(token)
+	var isAllowed bool
+	if err != nil || claims.ExpiresAt <= 0 || (claims.Role_ID != uint(roleID) && claims.Role_ID != 1) {
+		isAllowed = false
+	} else {
+		isAllowed = true
+	}
+
+	if !isAllowed {
+		return fiber.ErrUnauthorized
+	}
+
 	var perms model.Permission
 	if err := c.DB.Where("role_id = ?", roleID).First(&perms).Error; err != nil {
 		return err
