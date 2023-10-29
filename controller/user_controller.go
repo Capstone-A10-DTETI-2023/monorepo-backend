@@ -16,6 +16,7 @@ type UserController struct {
 type UserResponse struct {
 	ID 	  		uint   `json:"id"`
 	Role_ID		uint   `json:"role_id"`
+	Role_Name 	string `json:"role_name"`
 	Name 	  	string `json:"name"`
 	Email 	  	string `json:"email"`
 	Phone_Num 	string `json:"phone_num"`
@@ -71,26 +72,20 @@ func (c *UserController) GetAllUsers(ctx *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	var users []model.User
-
-	if err := c.DB.Find(&users).Error; err != nil {
+	var users []UserResponse
+	rows, err := c.DB.Table("users").Select("users.id, users.name, users.email, users.phone_num, users.role_id, roles.name").Joins("left join roles on roles.id = users.role_id").Rows()
+	if err != nil {
 		return err
 	}
-
-	var userResponses []UserResponse
-    for _, user := range users {
-        userResponses = append(userResponses, UserResponse{
-            ID:        	user.ID,
-			Role_ID: 	user.RoleID,
-            Name:      	user.Name,
-            Email:     	user.Email,
-            Phone_Num: 	user.Phone_Num,
-        })
-    }
+	for rows.Next() {
+		var user UserResponse
+		rows.Scan(&user.ID, &user.Name, &user.Email, &user.Phone_Num, &user.Role_ID, &user.Role_Name)
+		users = append(users, user)
+	}
 
 	return ctx.JSON(fiber.Map{
 		"message": "success",
-		"data":    userResponses,
+		"data":    users,
 	})
 }
 
@@ -101,23 +96,18 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 
 	userID := ctx.Params("id")
 
-	var user model.User
-	if err := c.DB.Where("id = ?", userID).First(&user).Error; err != nil {
+	var user UserResponse
+	row, err := c.DB.Table("users").Select("users.id, users.name, users.email, users.phone_num, users.role_id, roles.name").Where("users.id = ?", userID).Joins("left join roles on roles.id = users.role_id").Where("users.id = ?", userID).Rows()
+	if err != nil {
 		return err
 	}
-
-	var userResponses []UserResponse
-	userResponses = append(userResponses, UserResponse{
-		ID:        	user.ID,
-		Role_ID:  	user.RoleID,
-		Name:      	user.Name,
-		Email:     	user.Email,
-		Phone_Num: 	user.Phone_Num,
-	})
+	for row.Next() {
+		row.Scan(&user.ID, &user.Name, &user.Email, &user.Phone_Num, &user.Role_ID, &user.Role_Name)
+	}
 
 	return ctx.JSON(fiber.Map{
 		"message": "success",
-		"data":    userResponses,
+		"data":    user,
 	})
 }
 
