@@ -97,7 +97,7 @@ func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
 	userID := ctx.Params("id")
 
 	var user UserResponse
-	row, err := c.DB.Table("users").Select("users.id, users.name, users.email, users.phone_num, users.role_id, roles.name").Where("users.id = ?", userID).Joins("left join roles on roles.id = users.role_id").Where("users.id = ?", userID).Rows()
+	row, err := c.DB.Table("users").Select("users.id, users.name, users.email, users.phone_num, users.role_id, roles.name").Where("users.id = ?", userID).Joins("left join roles on roles.id = users.role_id").Rows()
 	if err != nil {
 		return err
 	}
