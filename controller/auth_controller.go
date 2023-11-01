@@ -24,6 +24,7 @@ type LoginRequest struct {
 }
 
 type ResetPassRequest struct {
+	Username 		string `json:"username"`
 	Phone_Num 	string `json:"phone_num"`
 }
 
@@ -79,9 +80,10 @@ func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
 		return err
 	}
 	phoneNum := resetPassRequest.Phone_Num
+	username := resetPassRequest.Username
 
 	var user model.User
-	if err := c.DB.Where("phone_num = ?", phoneNum).First(&user).Error; err != nil {
+	if err := c.DB.Where("name = ?", username).Where("phone_num = ?", phoneNum).First(&user).Error; err != nil {
 		return err
 	}
 
