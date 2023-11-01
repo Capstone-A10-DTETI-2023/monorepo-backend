@@ -10,6 +10,13 @@ type SensorController struct {
 	DB *gorm.DB
 }
 
+type SensorResponse struct {
+	ID 			uint   `json:"id"`
+	Node_ID		uint   `json:"node_id"`
+	Name 			string `json:"name"`
+	Unit 			string `json:"unit"`
+}
+
 func (c *SensorController) AddNewSensor(ctx *fiber.Ctx) error {
 	var sensor model.Sensor
 	if err := ctx.BodyParser(&sensor); err != nil {
@@ -32,8 +39,35 @@ func (c *SensorController) GetAllSensors(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	var sensorRes []SensorResponse
+	for _, sensor := range sensors {
+		sensorRes = append(sensorRes, SensorResponse{
+			ID: sensor.ID,
+			Node_ID: sensor.NodeID,
+			Name: sensor.Name,
+			Unit: sensor.Unit,
+		})
+	}
+
 	return ctx.JSON(fiber.Map{
 		"message": "success",
-		"data":    sensors,
+		"data":    sensorRes,
+	})
+}
+
+func (c *SensorController) DeleteSensor(ctx *fiber.Ctx) error {
+	sensorID := ctx.Params("id")
+
+	var sensor model.Sensor
+	if err := c.DB.Where("id = ?", sensorID).First(&sensor).Error; err != nil {
+		return err
+	}
+
+	if err := sensor.DeleteSensor(c.DB); err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
 	})
 }

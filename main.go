@@ -123,6 +123,7 @@ func server() {
 	sensorController := &controller.SensorController{DB: db}
 	sensor.Post("/", sensorController.AddNewSensor)
 	sensor.Get("/", sensorController.GetAllSensors)
+	sensor.Delete("/:id", sensorController.DeleteSensor)
 
 	sensorData := app.Group("/tsdata")
 	sensorData.Use(middleware.IsAuthenticated)
