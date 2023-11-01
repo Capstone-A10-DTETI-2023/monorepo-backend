@@ -17,6 +17,11 @@ type NodeSensorData struct {
 	Value     string       		`json:"value"`
 }
 
+type NodeSensorDataGet struct {
+	Timestamp interface{}     	`json:"timestamp"`
+	Value    string     	`json:"value"`
+}
+
 type NodeActuatorData struct {
 	Timestamp 	interface{}     	`json:"timestamp"`
 	NodeID    	string          	`json:"node_id"`
@@ -87,4 +92,35 @@ func (n *NodeSensorData) CheckDuplicateSensorData(db *pgx.Conn) error {
 
 	log.Println("Duplicate sensor data found")
 	return fiber.ErrConflict
+}
+
+func GetSensorData(db *pgx.Conn, nodeID, sensorID, fromTs, toTs, orderBy, limit string) ([]NodeSensorDataGet, error) {
+	query := fmt.Sprintf("SELECT value, timestamp FROM %s WHERE node_id = '%s' AND sensor_id = '%s' AND timestamp BETWEEN '%s' AND '%s' ORDER BY timestamp %s LIMIT %s", "sensor_data", nodeID, sensorID, fromTs, toTs, orderBy, limit)
+
+	var dbData []NodeSensorDataGet
+	rows, err := db.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var data NodeSensorDataGet
+		rows.Scan(&data.Value, &data.Timestamp)
+		dbData = append(dbData, data)
+	}
+
+	return dbData, nil
+}
+
+func (n *NodeSensorData) GetLastSensorData (db *pgx.Conn) (NodeSensorDataGet, error) {
+	query := fmt.Sprintf("SELECT value, timestamp FROM %s WHERE node_id = '%s' AND sensor_id = '%s' ORDER BY timestamp DESC LIMIT 1", "sensor_data", n.NodeID, n.SensorID)
+
+	var dbData NodeSensorDataGet
+	data := db.QueryRow(context.Background(), query)
+	if err := data.Scan(&dbData.Value, &dbData.Timestamp); err != nil {
+		log.Printf("Error querying sensor data: %v", err)
+		return dbData, err
+	}
+
+	return dbData, nil
 }
