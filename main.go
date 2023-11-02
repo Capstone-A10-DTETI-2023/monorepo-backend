@@ -84,6 +84,7 @@ func server() {
 	user.Get("/", userController.GetAllUsers)
 	user.Get("/:id", userController.GetUserByID)
 	user.Put("/:id", userController.UpdateUserByID)
+	user.Delete("/:id", userController.DeleteUser)
 
 	auth := app.Group("/auth")
 	authController := &controller.AuthController{DB: db}

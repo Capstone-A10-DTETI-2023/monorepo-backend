@@ -162,3 +162,28 @@ func (c *UserController) UpdateUserByID(ctx *fiber.Ctx) error {
 		"data":    userResponses,
 	})
 }
+
+func (c *UserController) DeleteUser(ctx *fiber.Ctx) error {
+	if isAdmin := middleware.IsAdmin(ctx); !isAdmin {
+		return fiber.ErrUnauthorized
+	}
+
+	userID := ctx.Params("id")
+
+	var user model.User
+	if err := c.DB.Where("id = ?", userID).First(&user).Error; err != nil {
+		return err
+	}
+
+	if err := user.DeleteUser(c.DB); err != nil {
+		return err
+	}
+
+	if err := c.DB.Where("user_id = ?", userID).Delete(&model.Notification{}).Error; err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}
