@@ -38,3 +38,19 @@ func (c *NodeController) GetAllNodes(ctx *fiber.Ctx) error {
 		"data":    nodes,
 	})
 }
+
+func (c *NodeController) DeleteNodeByID(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	var node model.Node
+	if err := c.DB.First(&node, id).Error; err != nil {
+		return err
+	}
+
+	if err := c.DB.Delete(&node).Error; err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}

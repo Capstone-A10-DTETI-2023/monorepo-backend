@@ -118,6 +118,7 @@ func server() {
 	nodeController := &controller.NodeController{DB: db}
 	node.Post("/", nodeController.RegisterNewNode)
 	node.Get("/", nodeController.GetAllNodes)
+	node.Delete("/:id", nodeController.DeleteNodeByID)
 
 	sensor := app.Group("/sensors")
 	sensor.Use(middleware.IsAuthenticated)
