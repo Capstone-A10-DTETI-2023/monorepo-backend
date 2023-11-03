@@ -15,6 +15,12 @@ type SensorResponse struct {
 	Node_ID		uint   `json:"node_id"`
 	Name 			string `json:"name"`
 	Unit 			string `json:"unit"`
+	Interval 	uint   `json:"interval"`
+	Tolerance 	uint   `json:"tolerance"`
+	Alarm 		bool   `json:"alarm"`
+	AlarmType 	int    `json:"alarm_type"`
+	AlarmLow 	float64 `json:"alarm_low"`
+	AlarmHigh 	float64 `json:"alarm_high"`
 }
 
 func (c *SensorController) AddNewSensor(ctx *fiber.Ctx) error {
@@ -46,6 +52,12 @@ func (c *SensorController) GetAllSensors(ctx *fiber.Ctx) error {
 			Node_ID: sensor.NodeID,
 			Name: sensor.Name,
 			Unit: sensor.Unit,
+			Interval: uint(sensor.Interval),
+			Tolerance: uint(sensor.Tolerance),
+			Alarm: sensor.Alarm,
+			AlarmType: sensor.AlarmType,
+			AlarmLow: sensor.AlarmLow,
+			AlarmHigh: sensor.AlarmHigh,
 		})
 	}
 
