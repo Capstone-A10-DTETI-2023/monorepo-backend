@@ -7,8 +7,37 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type Error struct {
+	Message string
+}
+
+func (e Error) Error() string {
+	return e.Message
+}
+
+
 func InsertDataSensor(ctx *fiber.Ctx) error {
 	var sensorData model.NodeSensorData
+
+	if err := ctx.BodyParser(&sensorData); err != nil {
+		return err
+	}
+
+	if sensorData.Timestamp == "" {
+		sensorData.Timestamp = time.Now().String()
+	}
+
+	if err := InsertDataSensorToDB(sensorData); err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data": sensorData,
+	})
+}
+
+func InsertDataSensorToDB(sensorData model.NodeSensorData) error {
 	db := model.ConnectDBTS()
 
 	if sensorData.Timestamp == "" {
@@ -20,11 +49,11 @@ func InsertDataSensor(ctx *fiber.Ctx) error {
 	timestamp, err := time.Parse("2006-01-02 15:04:05", bufferTime)
 	timestampStr := timestamp.Format(time.RFC3339)
 	if err != nil {
-		return err
+		return Error{"Error parsing timestamp"}
 	}
 
 	if sensorData.NodeID == "" || sensorData.SensorID == "" || sensorData.Value == "" {
-		return fiber.ErrBadRequest
+		return Error{"Missing required field"}
 	}
 
 	sensorData = model.NodeSensorData{
@@ -42,10 +71,7 @@ func InsertDataSensor(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	return ctx.JSON(fiber.Map{
-		"message": "success",
-		"data": sensorData,
-	})
+	return nil
 }
 
 func GetSensorData(ctx *fiber.Ctx) error {
@@ -72,6 +98,36 @@ func GetSensorData(ctx *fiber.Ctx) error {
 	}
 
 	sensorDataDB, err := model.GetSensorData(db, nodeID, sensorID, fromTimeStr, toTimeStr, order, limit)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data": fiber.Map{
+			"id_node": nodeID,
+			"id_sensor": sensorID,
+			"sensor_data": sensorDataDB,
+		},
+	})
+}
+
+func GetLastSensorData(ctx *fiber.Ctx) error {
+	db := model.ConnectDBTS()
+
+	nodeID := ctx.Query("node_id")
+	sensorID := ctx.Query("sensor_id")
+
+	if nodeID == "" || sensorID == "" {
+		return fiber.ErrBadRequest
+	}
+
+	sensorData := model.NodeSensorData{
+		NodeID: nodeID,
+		SensorID: sensorID,
+	}
+
+	sensorDataDB, err := sensorData.GetLastSensorData(db)
 	if err != nil {
 		return err
 	}

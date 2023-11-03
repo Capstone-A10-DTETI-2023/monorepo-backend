@@ -137,6 +137,7 @@ func server() {
 	sensorData.Use(middleware.IsAuthenticated)
 	sensorData.Post("/sensor", controller.InsertDataSensor)
 	sensorData.Get("/sensor", controller.GetSensorData)
+	sensorData.Get("/sensor/last", controller.GetLastSensorData)
 
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
