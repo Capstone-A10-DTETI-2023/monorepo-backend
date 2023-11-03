@@ -135,9 +135,10 @@ func server() {
 
 	sensorData := app.Group("/tsdata")
 	sensorData.Use(middleware.IsAuthenticated)
-	sensorData.Post("/sensor", controller.InsertDataSensor)
-	sensorData.Get("/sensor", controller.GetSensorData)
-	sensorData.Get("/sensor/last", controller.GetLastSensorData)
+	sensorDataController := &controller.SensorDataController{DB: db}
+	sensorData.Post("/sensor", sensorDataController.InsertDataSensor)
+	sensorData.Get("/sensor", sensorDataController.GetSensorData)
+	sensorData.Get("/sensor/last", sensorDataController.GetLastSensorData)
 
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)

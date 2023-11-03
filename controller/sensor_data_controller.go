@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
+	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/utils"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type Error struct {
@@ -15,12 +18,107 @@ func (e Error) Error() string {
 	return e.Message
 }
 
+type SensorDataController struct {
+	DB *gorm.DB
+}
 
-func InsertDataSensor(ctx *fiber.Ctx) error {
+func (c *SensorDataController) InsertDataSensor(ctx *fiber.Ctx) error {
 	var sensorData model.NodeSensorData
+	var sensor model.Sensor
 
 	if err := ctx.BodyParser(&sensorData); err != nil {
 		return err
+	}
+
+	if err := c.DB.Where("id = ?", sensorData.SensorID).First(&sensor).Error; err != nil {
+		return err
+	}
+
+	if sensorData.Value == "" {
+		return Error{"Missing required field"}
+	}
+
+	if sensor.Alarm {
+		switch sensor.AlarmType {
+		case 1:
+			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
+			if sensorVal < sensor.AlarmLow {
+				var phoneNum []string
+				rows, err := c.DB.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				var nodeName string
+				if err := c.DB.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
+					return err
+				}
+
+				message := "Sensor " + sensor.Name + " on " + nodeName + " is below the threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+
+		case 2:
+			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
+			if sensorVal > sensor.AlarmHigh {
+				var phoneNum []string
+				rows, err := c.DB.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				var nodeName string
+				if err := c.DB.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
+					return err
+				}
+
+				message := "Sensor " + sensor.Name + " on " + nodeName + " is above the threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+
+		case 3:
+			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
+			if sensorVal < sensor.AlarmLow || sensorVal > sensor.AlarmHigh {
+				var phoneNum []string
+				rows, err := c.DB.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				var nodeName string
+				if err := c.DB.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
+					return err
+				}
+
+				message := "Sensor " + sensor.Name + " on " + nodeName + " is outside the predefined threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+		}
+
 	}
 
 	if sensorData.Timestamp == "" {
@@ -74,7 +172,7 @@ func InsertDataSensorToDB(sensorData model.NodeSensorData) error {
 	return nil
 }
 
-func GetSensorData(ctx *fiber.Ctx) error {
+func (c *SensorDataController) GetSensorData(ctx *fiber.Ctx) error {
 	db := model.ConnectDBTS()
 
 	nodeID := ctx.Query("node_id")
@@ -112,7 +210,7 @@ func GetSensorData(ctx *fiber.Ctx) error {
 	})
 }
 
-func GetLastSensorData(ctx *fiber.Ctx) error {
+func (c *SensorDataController) GetLastSensorData(ctx *fiber.Ctx) error {
 	db := model.ConnectDBTS()
 
 	nodeID := ctx.Query("node_id")
