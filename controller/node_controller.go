@@ -10,6 +10,12 @@ type NodeController struct {
 	DB *gorm.DB
 }
 
+type NodeResponse struct {
+	ID        uint   `json:"id"`
+	Name      string `json:"name"`
+	Coordinate []string  `json:"coordinate"`
+}
+
 func (c *NodeController) RegisterNewNode(ctx *fiber.Ctx) error {
 
 	var node model.Node
@@ -33,9 +39,18 @@ func (c *NodeController) GetAllNodes(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	var nodeResponses []NodeResponse
+	for _, node := range nodes {
+		nodeResponses = append(nodeResponses, NodeResponse{
+			ID:        node.ID,
+			Name:      node.Name,
+			Coordinate: []string{node.Latitude, node.Longitude},
+		})
+	}
+
 	return ctx.JSON(fiber.Map{
 		"message": "success",
-		"data":    nodes,
+		"data":    nodeResponses,
 	})
 }
 
