@@ -120,6 +120,7 @@ func server() {
 	node.Post("/", nodeController.RegisterNewNode)
 	node.Get("/", nodeController.GetAllNodes)
 	node.Delete("/:id", nodeController.DeleteNodeByID)
+	node.Put("/:id", nodeController.UpdateNodeByID)
 
 	sensor := app.Group("/sensors")
 	sensor.Use(middleware.IsAuthenticated)
@@ -128,6 +129,7 @@ func server() {
 	sensor.Get("/", sensorController.GetAllSensors)
 	sensor.Delete("/:id", sensorController.DeleteSensor)
 	sensor.Put("/:id", sensorController.UpdateSensorByID)
+	sensor.Get("/node/:node_id", sensorController.GetSensorByNodeID)
 
 	sensorData := app.Group("/tsdata")
 	sensorData.Use(middleware.IsAuthenticated)

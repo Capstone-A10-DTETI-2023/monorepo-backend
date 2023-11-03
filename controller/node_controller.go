@@ -69,3 +69,23 @@ func (c *NodeController) DeleteNodeByID(ctx *fiber.Ctx) error {
 		"message": "success",
 	})
 }
+
+func (c *NodeController) UpdateNodeByID(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	var node model.Node
+	if err := c.DB.First(&node, id).Error; err != nil {
+		return err
+	}
+
+	if err := ctx.BodyParser(&node); err != nil {
+		return err
+	}
+
+	if err := c.DB.Save(&node).Error; err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}

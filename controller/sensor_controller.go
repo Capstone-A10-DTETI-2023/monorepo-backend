@@ -92,3 +92,27 @@ func (c *SensorController) UpdateSensorByID (ctx *fiber.Ctx) error {
 		"message": "success",
 	})
 }
+
+func (c *SensorController) GetSensorByNodeID(ctx *fiber.Ctx) error {
+	nodeID := ctx.Params("node_id")
+
+	var sensor []model.Sensor
+	if err := c.DB.Where("node_id = ?", nodeID).Find(&sensor).Error; err != nil {
+		return err
+	}
+
+	var sensorRes []SensorResponse
+	for _, sensor := range sensor {
+		sensorRes = append(sensorRes, SensorResponse{
+			ID: sensor.ID,
+			Node_ID: sensor.NodeID,
+			Name: sensor.Name,
+			Unit: sensor.Unit,
+		})
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    sensorRes,
+	})
+}
