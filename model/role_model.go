@@ -18,6 +18,9 @@ func BootstrapRole(db *gorm.DB) {
 	db.FirstOrCreate(&Role{}, Role{
 		Name: "TEKNISI",
 	})
+	db.FirstOrCreate(&Role{}, Role{
+		Name: "GENERAL USER",
+	})
 }
 
 func (r *Role) TableName() string {

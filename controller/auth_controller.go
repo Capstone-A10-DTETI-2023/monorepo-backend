@@ -126,3 +126,67 @@ func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
 		"message": "success",
 	})
 }
+
+func (c *AuthController) Logout(ctx *fiber.Ctx) error {
+	ctx.Cookie(&fiber.Cookie{
+		Name: "token",
+		Value: "",
+		Expires: time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+	})
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}
+
+func (c *AuthController) Register(ctx *fiber.Ctx) error {
+	tokenWA := os.Getenv("TOKEN_WA")
+
+	var user model.User
+	if err := ctx.BodyParser(&user); err != nil {
+		return err
+	}
+
+	newPassword, _ := utils.GenerateRandomPassword(12)
+	user.Password = newPassword
+	user.RoleID = 3
+
+	if err := user.HashPassword(); err != nil {
+		return err
+	}
+
+	if err := user.CreateUser(c.DB); err != nil {
+		return err
+	}
+
+	request := model.WhatsAppNotificationRequest{
+		Message: "Halo, " + user.Name + "! Akun Anda telah dibuat. Password login Anda adalah: " + newPassword + "  Silahkan login dan ubah password Anda.",
+		Schedule: "0",
+	}
+
+	data := url.Values{}
+	data.Set("target", user.Phone_Num)
+	data.Set("message", request.Message)
+	data.Set("schedule", request.Schedule)
+
+	client := &http.Client{}
+	r, err := http.NewRequest(http.MethodPost, "https://api.fonnte.com/send", strings.NewReader(data.Encode()))
+	if err != nil {
+		return err
+	}
+
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Add("Authorization", tokenWA)
+
+	result, err := client.Do(r)
+	if err != nil {
+		return err
+	}
+	defer result.Body.Close()
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}
+
