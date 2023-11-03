@@ -88,3 +88,24 @@ func (c *RoleController) UpdateRole(ctx *fiber.Ctx) error{
 		"data":    role,
 	})
 }
+
+func (c *RoleController) DeleteRoleByID(ctx *fiber.Ctx) error {
+	if isAdmin := middleware.IsAdmin(ctx); !isAdmin {
+		return fiber.ErrUnauthorized
+	}
+
+	roleID, _ := strconv.Atoi(ctx.Params("id"))
+
+	var role model.Role
+	if err := c.DB.Where("id = ?", roleID).First(&role).Error; err != nil {
+		return err
+	}
+
+	if err := role.DeleteRole(c.DB); err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}

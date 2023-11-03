@@ -97,6 +97,7 @@ func server() {
 	role.Get("/", roleController.GetAllRole)
 	role.Post("/", roleController.CreateRole)
 	role.Put("/:id", roleController.UpdateRole)
+	role.Delete("/:id", roleController.DeleteRoleByID)
 
 	permissions := app.Group("/permissions")
 	permissions.Use(middleware.IsAuthenticated)
@@ -126,6 +127,7 @@ func server() {
 	sensor.Post("/", sensorController.AddNewSensor)
 	sensor.Get("/", sensorController.GetAllSensors)
 	sensor.Delete("/:id", sensorController.DeleteSensor)
+	sensor.Put("/:id", sensorController.UpdateSensorByID)
 
 	sensorData := app.Group("/tsdata")
 	sensorData.Use(middleware.IsAuthenticated)

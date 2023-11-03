@@ -71,3 +71,24 @@ func (c *SensorController) DeleteSensor(ctx *fiber.Ctx) error {
 		"message": "success",
 	})
 }
+
+func (c *SensorController) UpdateSensorByID (ctx *fiber.Ctx) error {
+	sensorID := ctx.Params("id")
+
+	var sensor model.Sensor
+	if err := c.DB.Where("id = ?", sensorID).First(&sensor).Error; err != nil {
+		return err
+	}
+
+	if err := ctx.BodyParser(&sensor); err != nil {
+		return err
+	}
+
+	if err := sensor.UpdateSensor(c.DB); err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+	})
+}
