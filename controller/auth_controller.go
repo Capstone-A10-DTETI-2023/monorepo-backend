@@ -1,10 +1,6 @@
 package controller
 
 import (
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/middleware"
@@ -73,7 +69,6 @@ func (c *AuthController) Login(ctx *fiber.Ctx) error {
 }
 
 func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
-	tokenWA := os.Getenv("TOKEN_WA")
 
 	var resetPassRequest ResetPassRequest
 	if err := ctx.BodyParser(&resetPassRequest); err != nil {
@@ -97,30 +92,11 @@ func (c *AuthController) ResetPassword(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	request := model.WhatsAppNotificationRequest{
-		Message: "Halo, " + user.Name + "! Password Anda telah direset. Password baru Anda adalah: " + newPassword + "  Silahkan login dan ubah password Anda.",
-		Schedule: "0",
-	}
+	message := "Halo, " + user.Name + "! Password Anda telah direset. Password baru Anda adalah: " + newPassword + "  Silahkan login dan ubah password Anda."
 
-	data := url.Values{}
-	data.Set("target", user.Phone_Num)
-	data.Set("message", request.Message)
-	data.Set("schedule", request.Schedule)
-
-	client := &http.Client{}
-	r, err := http.NewRequest(http.MethodPost, "https://api.fonnte.com/send", strings.NewReader(data.Encode()))
-	if err != nil {
+	if err := utils.SendWAMessage(user.Phone_Num, message, "0"); err != nil {
 		return err
 	}
-
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Authorization", tokenWA)
-
-	result, err := client.Do(r)
-	if err != nil {
-		return err
-	}
-	defer result.Body.Close()
 
 	return ctx.JSON(fiber.Map{
 		"message": "success",
@@ -141,7 +117,6 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 }
 
 func (c *AuthController) Register(ctx *fiber.Ctx) error {
-	tokenWA := os.Getenv("TOKEN_WA")
 
 	var user model.User
 	if err := ctx.BodyParser(&user); err != nil {
@@ -160,30 +135,11 @@ func (c *AuthController) Register(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	request := model.WhatsAppNotificationRequest{
-		Message: "Halo, " + user.Name + "! Akun Anda telah dibuat. Password login Anda adalah: " + newPassword + "  Silahkan login dan ubah password Anda.",
-		Schedule: "0",
-	}
+	message := "Halo, " + user.Name + "! Akun Anda telah dibuat. Password login Anda adalah: " + newPassword + "  Silahkan login dan ubah password Anda."
 
-	data := url.Values{}
-	data.Set("target", user.Phone_Num)
-	data.Set("message", request.Message)
-	data.Set("schedule", request.Schedule)
-
-	client := &http.Client{}
-	r, err := http.NewRequest(http.MethodPost, "https://api.fonnte.com/send", strings.NewReader(data.Encode()))
-	if err != nil {
+	if err := utils.SendWAMessage(user.Phone_Num, message, "0"); err != nil {
 		return err
 	}
-
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Authorization", tokenWA)
-
-	result, err := client.Do(r)
-	if err != nil {
-		return err
-	}
-	defer result.Body.Close()
 
 	return ctx.JSON(fiber.Map{
 		"message": "success",
