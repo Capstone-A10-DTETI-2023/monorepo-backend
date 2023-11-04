@@ -90,11 +90,20 @@ func (c *UserController) GetAllUsers(ctx *fiber.Ctx) error {
 }
 
 func (c *UserController) GetUserByID(ctx *fiber.Ctx) error {
-	if isAdmin := middleware.IsAdmin(ctx); !isAdmin {
-		return fiber.ErrUnauthorized
+	var isAllowed bool
+	
+	token := ctx.Cookies("token")
+	claims, err := middleware.ParseJWT(token)
+	userID, _ := strconv.Atoi(ctx.Params("id"))
+	if err != nil || claims.ExpiresAt <= 0 || (claims.ID != uint(userID) && claims.Role_ID != 1) {
+		isAllowed = false
+	} else {
+		isAllowed = true
 	}
 
-	userID := ctx.Params("id")
+	if !isAllowed {
+		return fiber.ErrUnauthorized
+	}
 
 	var user UserResponse
 	row, err := c.DB.Table("users").Select("users.id, users.name, users.email, users.phone_num, users.role_id, roles.name").Where("users.id = ?", userID).Joins("left join roles on roles.id = users.role_id").Rows()
