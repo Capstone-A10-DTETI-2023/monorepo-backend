@@ -9,6 +9,7 @@ import (
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/controller"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"gorm.io/gorm"
 )
 
 var (
@@ -26,7 +27,7 @@ func (e Error) Error() string {
 	return e.Message
 }
 
-func ConnectMQTT() mqtt.Client {
+func ConnectMQTT(dbData *gorm.DB) mqtt.Client {
 	dsn := "tcp://" + _mqttHost + ":" + _mqttPort
 
 	connectHandler := func(client mqtt.Client) {
@@ -44,7 +45,7 @@ func ConnectMQTT() mqtt.Client {
 		if err := json.Unmarshal([]byte(payloadStr), &NodeSensorData); err != nil {
 			log.Printf("MQTT: Error unmarshalling sensor data: %v", err)
 		} else {
-			if err := controller.InsertDataSensorToDB(NodeSensorData); err != nil {
+			if err := controller.InsertDataSensorToDB(NodeSensorData, dbData); err != nil {
 				log.Printf("MQTT: Error inserting sensor data: %v", err)
 			}
 		}

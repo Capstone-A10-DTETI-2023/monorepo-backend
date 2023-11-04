@@ -24,13 +24,8 @@ type SensorDataController struct {
 
 func (c *SensorDataController) InsertDataSensor(ctx *fiber.Ctx) error {
 	var sensorData model.NodeSensorData
-	var sensor model.Sensor
 
 	if err := ctx.BodyParser(&sensorData); err != nil {
-		return err
-	}
-
-	if err := c.DB.Where("id = ?", sensorData.SensorID).First(&sensor).Error; err != nil {
 		return err
 	}
 
@@ -38,94 +33,7 @@ func (c *SensorDataController) InsertDataSensor(ctx *fiber.Ctx) error {
 		return Error{"Missing required field"}
 	}
 
-	if sensor.Alarm {
-		switch sensor.AlarmType {
-		case 1:
-			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
-			if sensorVal < sensor.AlarmLow {
-				var phoneNum []string
-				rows, err := c.DB.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
-				if err != nil {
-					return err
-				}
-				defer rows.Close()
-				for rows.Next() {
-					var phone string
-					rows.Scan(&phone)
-					phoneNum = append(phoneNum, phone)
-				}
-
-				var nodeName string
-				if err := c.DB.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
-					return err
-				}
-
-				message := "Sensor " + sensor.Name + " on " + nodeName + " is below the threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
-				for _, phone := range phoneNum {
-					utils.SendWAMessage(phone, message, "0")
-				}
-			}
-
-		case 2:
-			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
-			if sensorVal > sensor.AlarmHigh {
-				var phoneNum []string
-				rows, err := c.DB.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
-				if err != nil {
-					return err
-				}
-				defer rows.Close()
-				for rows.Next() {
-					var phone string
-					rows.Scan(&phone)
-					phoneNum = append(phoneNum, phone)
-				}
-
-				var nodeName string
-				if err := c.DB.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
-					return err
-				}
-
-				message := "Sensor " + sensor.Name + " on " + nodeName + " is above the threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
-				for _, phone := range phoneNum {
-					utils.SendWAMessage(phone, message, "0")
-				}
-			}
-
-		case 3:
-			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
-			if sensorVal < sensor.AlarmLow || sensorVal > sensor.AlarmHigh {
-				var phoneNum []string
-				rows, err := c.DB.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
-				if err != nil {
-					return err
-				}
-				defer rows.Close()
-				for rows.Next() {
-					var phone string
-					rows.Scan(&phone)
-					phoneNum = append(phoneNum, phone)
-				}
-
-				var nodeName string
-				if err := c.DB.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
-					return err
-				}
-
-				message := "Sensor " + sensor.Name + " on " + nodeName + " is outside the predefined threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
-				for _, phone := range phoneNum {
-					utils.SendWAMessage(phone, message, "0")
-				}
-			}
-		}
-
-	}
-
-	if sensorData.Timestamp == "" {
-		sensorData.Timestamp = time.Now().String()
-	}
-
-	if err := InsertDataSensorToDB(sensorData); err != nil {
+	if err := InsertDataSensorToDB(sensorData, c.DB); err != nil {
 		return err
 	}
 
@@ -135,8 +43,18 @@ func (c *SensorDataController) InsertDataSensor(ctx *fiber.Ctx) error {
 	})
 }
 
-func InsertDataSensorToDB(sensorData model.NodeSensorData) error {
-	db := model.ConnectDBTS()
+func InsertDataSensorToDB(sensorData model.NodeSensorData, dbData *gorm.DB) error {
+	dbTs := model.ConnectDBTS()
+	var sensor model.Sensor
+
+	if err := dbData.Where("id = ?", sensorData.SensorID).First(&sensor).Error; err != nil {
+		return err
+	}
+
+	reqNodeId, _ := strconv.Atoi(sensorData.NodeID)
+	if  uint(reqNodeId) != sensor.NodeID {
+		return Error{"Sensor does not belong to Node ID provided"}
+	}
 
 	if sensorData.Timestamp == "" {
 		sensorData.Timestamp = time.Now().String()
@@ -161,12 +79,94 @@ func InsertDataSensorToDB(sensorData model.NodeSensorData) error {
 		Value: sensorData.Value,
 	}
 
-	if err := sensorData.CheckDuplicateSensorData(db); err != nil {
+	if err := sensorData.CheckDuplicateSensorData(dbTs); err != nil {
 		return err
 	}
 
-	if err := sensorData.CreateNodeSensorData(db); err != nil {
+	if err := sensorData.CreateNodeSensorData(dbTs); err != nil {
 		return err
+	}
+
+	if sensor.Alarm {
+		switch sensor.AlarmType {
+		case 1:
+			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
+			if sensorVal < sensor.AlarmLow {
+				var phoneNum []string
+				rows, err := dbData.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				var nodeName string
+				if err := dbData.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
+					return err
+				}
+
+				message := "Sensor " + sensor.Name + " on " + nodeName + " is below the threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+
+		case 2:
+			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
+			if sensorVal > sensor.AlarmHigh {
+				var phoneNum []string
+				rows, err := dbData.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				var nodeName string
+				if err := dbData.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
+					return err
+				}
+
+				message := "Sensor " + sensor.Name + " on " + nodeName + " is above the threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+
+		case 3:
+			sensorVal, _ := strconv.ParseFloat(sensorData.Value, 64)
+			if sensorVal < sensor.AlarmLow || sensorVal > sensor.AlarmHigh {
+				var phoneNum []string
+				rows, err := dbData.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				var nodeName string
+				if err := dbData.Table("nodes").Select("nodes.name").Where("nodes.id = ?", sensor.NodeID).Scan(&nodeName).Error; err != nil {
+					return err
+				}
+
+				message := "Sensor " + sensor.Name + " on " + nodeName + " is outside the predefined threshold. Current value: " + strconv.FormatFloat(sensorVal, 'f', 2, 64) + " " + sensor.Unit
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+		}
 	}
 
 	return nil

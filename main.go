@@ -50,15 +50,16 @@ func server() {
 
 	// Initialize DB Connection with PGX to QuestDB
 	dbTs := utils.ConnectTSDB()
+	defer dbTs.Close(context.Background())
 	if err := dbTs.Ping(context.Background()); err != nil {
 		panic(err)
 	}
-	defer dbTs.Close(context.Background())
 	log.Printf("Connected to TSDB QuestDB")
 
 	// Initialize MQTT Connection
 	go func(){
-		mqtt := consumer.ConnectMQTT()
+		db := utils.ConnectDB()
+		mqtt := consumer.ConnectMQTT(db)
 		defer mqtt.Disconnect(250)
 		consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
 	}()
@@ -156,6 +157,7 @@ func migrate() error {
 	model.MigrateNotification(db)
 	model.MigrateNode(db)
 	model.MigrateSensor(db)
+	// model.MigrateNodePressureRef(db)
 	model.MigrateNodeData()
 
 	log.Println("Migration completed")
