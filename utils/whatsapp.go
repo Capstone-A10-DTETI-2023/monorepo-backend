@@ -5,13 +5,22 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 var tokenWA = os.Getenv("TOKEN_WA")
 
+var (
+	notifCooldownEnd = make(map[string]int64)
+)
+
 func SendWAMessage(phoneNum, message, schedule string) error {
+
+	if time.Now().Unix() < notifCooldownEnd[phoneNum] {
+		return fiber.ErrTooManyRequests
+	}
 
 	if tokenWA == "" {
 		return fiber.ErrInternalServerError
@@ -25,6 +34,8 @@ func SendWAMessage(phoneNum, message, schedule string) error {
 	data.Set("target", phoneNum)
 	data.Set("message", message)
 	data.Set("schedule", schedule)
+
+	notifCooldownEnd[phoneNum] = time.Now().Add(5 * time.Minute).Unix()
 
 	client := &http.Client{}
 	r, err := http.NewRequest(http.MethodPost, "https://api.fonnte.com/send", strings.NewReader(data.Encode()))
