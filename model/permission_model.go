@@ -49,5 +49,5 @@ func (p *Permission) UpdatePermission(db *gorm.DB) error {
 }
 
 func (p *Permission) DeletePermission(db *gorm.DB) error {
-	return db.Delete(p).Error
+	return db.Unscoped().Delete(p).Error
 }

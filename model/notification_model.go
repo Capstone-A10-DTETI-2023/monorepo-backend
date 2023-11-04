@@ -43,5 +43,5 @@ func (n *Notification) UpdateNotification(db *gorm.DB) error {
 }
 
 func (n *Notification) DeleteNotification(db *gorm.DB) error {
-	return db.Delete(n).Error
+	return db.Unscoped().Delete(n).Error
 }

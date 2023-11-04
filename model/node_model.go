@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type Node struct {
 	gorm.Model
-	Name 		string `gorm:"not null"`
+	Name 		string `gorm:"not null; unique"`
 	Latitude	string `gorm:"not null"`
 	Longitude	string `gorm:"not null"`
 }
@@ -26,7 +26,7 @@ func (n *Node) UpdateNode(db *gorm.DB) error {
 }
 
 func (n *Node) DeleteNode(db *gorm.DB) error {
-	return db.Delete(n).Error
+	return db.Unscoped().Delete(n).Error
 }
 
 func (n *Node) GetNode(db *gorm.DB) error {

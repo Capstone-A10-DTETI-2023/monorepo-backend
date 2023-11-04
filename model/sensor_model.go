@@ -54,7 +54,7 @@ func (s *Sensor) UpdateSensor(db *gorm.DB) error {
 }
 
 func (s *Sensor) DeleteSensor(db *gorm.DB) error {
-	return db.Delete(s).Error
+	return db.Unscoped().Delete(s).Error
 }
 
 func (s *Sensor) GetSensor(db *gorm.DB) error {

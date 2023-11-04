@@ -141,6 +141,12 @@ func server() {
 	sensorData.Get("/sensor", sensorDataController.GetSensorData)
 	sensorData.Get("/sensor/last", sensorDataController.GetLastSensorData)
 
+	systemSettings := app.Group("/sys-setting")
+	systemSettings.Use(middleware.IsAuthenticated)
+	systemSettingsController := &controller.SysSettingController{DB: db}
+	systemSettings.Get("/nodepref", systemSettingsController.GetAllNodePressureRef)
+	systemSettings.Put("/nodepref/:node_id", systemSettingsController.SetNodePressureRef)
+
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
     log.Fatal(app.Listen(listenAddr))
@@ -157,7 +163,7 @@ func migrate() error {
 	model.MigrateNotification(db)
 	model.MigrateNode(db)
 	model.MigrateSensor(db)
-	// model.MigrateNodePressureRef(db)
+	model.MigrateNodePressureRef(db)
 	model.MigrateNodeData()
 
 	log.Println("Migration completed")

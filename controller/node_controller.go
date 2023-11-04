@@ -26,6 +26,18 @@ func (c *NodeController) RegisterNewNode(ctx *fiber.Ctx) error {
 	if err := node.CreateNode(c.DB); err != nil {
 		return err
 	}
+
+	var nodeRegister model.Node
+	if err := c.DB.First(&nodeRegister, "name = '" + node.Name + "'").Error; err != nil {
+		return err
+	}
+
+	var nodePressureRef model.NodePressureRef
+	nodePressureRef.NodeID = node.ID
+	nodePressureRef.Pressure = -1
+	if err := nodePressureRef.CreateNodePressureRef(c.DB); err != nil {
+		return err
+	}
 	
 	return ctx.JSON(fiber.Map{
 		"message": "success",
@@ -61,7 +73,15 @@ func (c *NodeController) DeleteNodeByID(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	if err := c.DB.Delete(&node).Error; err != nil {
+	var nodePresRef model.NodePressureRef
+	if err := c.DB.First(&nodePresRef, "node_id = ?", id).Error; err != nil {
+		return err
+	}
+	if err := nodePresRef.DeleteNodePressureRef(c.DB); err != nil {
+		return err
+	}
+
+	if err := node.DeleteNode(c.DB); err != nil {
 		return err
 	}
 
