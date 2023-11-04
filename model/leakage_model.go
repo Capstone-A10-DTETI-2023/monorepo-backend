@@ -3,7 +3,6 @@ package model
 import "gorm.io/gorm"
 
 type NodePressureRef struct {
-	ID        uint `gorm:"primary_key:auto_increment" json:"id"`
 	NodeID    uint `gorm:"not null" json:"node_id"`
 	Pressure  float64 `gorm:"not null" json:"pressure"`
 	Node		Node   `gorm:"foreignKey:NodeID"`
