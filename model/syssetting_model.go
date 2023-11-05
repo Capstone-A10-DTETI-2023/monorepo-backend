@@ -6,7 +6,8 @@ type SystemSetting struct {
 	gorm.Model
 	WebsiteName			string `gorm:"not null"`
 	WebsiteDescription	string `gorm:"not null"`
-	LeakageSensitivity 		float64 `gorm:"not null"`
+	DefLeakageSensitivity 		float64 `gorm:"not null"`
+	DefNonLeakSensitivity 		float64 `gorm:"not null"`
 	WhatsappCooldownSecs 	int `gorm:"not null"`
 }
 
@@ -18,13 +19,14 @@ func BootstrapSystemSetting(db *gorm.DB) {
 	db.FirstOrCreate(&SystemSetting{}, SystemSetting{
 		WebsiteName: "Sistem Informasi Monitoring Tekanan Air",
 		WebsiteDescription: "Sistem Informasi Monitoring Tekanan Air",
-		LeakageSensitivity: 0.5,
+		DefLeakageSensitivity: 0.5,
+		DefNonLeakSensitivity: 0.5,
 		WhatsappCooldownSecs: 30,
 	})
 }
 
 func (s *SystemSetting) TableName() string {
-	return "syssettings"
+	return "syssettings_general"
 }
 
 func (s *SystemSetting) CreateSystemSetting(db *gorm.DB) error {

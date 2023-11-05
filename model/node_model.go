@@ -7,6 +7,7 @@ type Node struct {
 	Name 		string `gorm:"not null; unique"`
 	Latitude	string `gorm:"not null"`
 	Longitude	string `gorm:"not null"`
+	LeakageSens float64 `gorm:"not null; default:-1"`
 }
 
 func MigrateNode(db *gorm.DB) {

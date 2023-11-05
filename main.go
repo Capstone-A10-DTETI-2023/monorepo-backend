@@ -147,6 +147,11 @@ func server() {
 	systemSettings.Get("/nodepref", systemSettingsController.GetAllNodePressureRef)
 	systemSettings.Put("/nodepref/:node_id", systemSettingsController.SetNodePressureRef)
 
+	leakage := app.Group("/leakage")
+	leakage.Use(middleware.IsAuthenticated)
+	leakageController := &controller.LeakageController{DB: db}
+	leakage.Get("/sensmat", leakageController.GetSensMat)
+
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
     log.Fatal(app.Listen(listenAddr))
@@ -164,6 +169,7 @@ func migrate() error {
 	model.MigrateNode(db)
 	model.MigrateSensor(db)
 	model.MigrateNodePressureRef(db)
+	model.MigrateSystemSetting(db)
 	model.MigrateNodeData()
 
 	log.Println("Migration completed")
@@ -179,6 +185,7 @@ func bootstrap() error {
 	model.BootstrapAccount(db)
 	model.BootstrapAccountNotif(db)
 	model.BootstrapPermission(db)
+	model.BootstrapSystemSetting(db)
 	log.Println("Bootstrap completed")
 	return nil
 }
