@@ -60,7 +60,6 @@ func server() {
 	go func(){
 		db := utils.ConnectDB()
 		mqtt := consumer.ConnectMQTT(db)
-		defer mqtt.Disconnect(250)
 		consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
 	}()
 
