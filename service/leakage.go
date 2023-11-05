@@ -1,7 +1,13 @@
 package service
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"strconv"
+
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
+	"github.com/jackc/pgx/v5"
 	"gonum.org/v1/gonum/mat"
 	"gorm.io/gorm"
 )
@@ -76,3 +82,32 @@ func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 	return sensMat, nil
 }
 
+func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (*map[int]float64, error) {
+	sensorPresData := make(map[int]float64)
+
+	var sensorsId []int
+	rows, err := db.Table("sensors").Select("sensors.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Rows()
+	if err != nil {
+		return &sensorPresData, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sensId int
+		rows.Scan(&sensId)
+		sensorsId = append(sensorsId, sensId)
+	}
+
+	for _, id := range sensorsId {
+		sensorId := strconv.Itoa(id)
+		query := fmt.Sprintf("SELECT value FROM %s WHERE sensor_id = '%s' ORDER BY timestamp DESC LIMIT 1", "sensor_data", sensorId)
+		data := dbTs.QueryRow(context.Background(), query)
+		value := "0"
+		if err := data.Scan(&value); (err != nil && err != pgx.ErrNoRows) {
+			return &sensorPresData, err
+		}
+		valueFloat, _ := strconv.ParseFloat(value, 64)
+		sensorPresData[id] = valueFloat
+	}
+	log.Println(sensorPresData)
+	return &sensorPresData, nil
+}

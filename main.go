@@ -151,6 +151,7 @@ func server() {
 	leakage.Use(middleware.IsAuthenticated)
 	leakageController := &controller.LeakageController{DB: db}
 	leakage.Get("/sensmat", leakageController.GetSensMat)
+	leakage.Get("/sensor/last", leakageController.GetLatestPresSensorData)
 
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
