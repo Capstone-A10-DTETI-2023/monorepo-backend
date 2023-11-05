@@ -6,10 +6,22 @@ import (
 	"gorm.io/gorm"
 )
 
+type Error struct {
+	Message string
+}
+
+func (e Error) Error() string {
+	return e.Message
+}
+
 func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 	var nodeCount int64
-	if err := db.Model(&model.Node{}).Count(&nodeCount).Error; err != nil {
+	if err := db.Model(&model.Node{}).Where("calc_leakage = ?", true).Count(&nodeCount).Error; err != nil {
 		return nil, err
+	}
+
+	if nodeCount < 2 {
+		return nil, Error{"Not enough nodes to calculate sensitivity matrix"}
 	}
 
 	var defLeakSens, defNonLeakSens float64
@@ -33,6 +45,9 @@ func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 		var refPre float64
 		var leakSen float64
 		rows.Scan(&leakSen, &refPre)
+		if refPre == -1 {
+			return nil, Error{"Reference pressure not set"}
+		}
 		refPres = append(refPres, refPre)
 		leakSens = append(leakSens, leakSen)
 	}
@@ -60,3 +75,4 @@ func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 
 	return sensMat, nil
 }
+

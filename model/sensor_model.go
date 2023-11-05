@@ -13,15 +13,23 @@ func (e Error) Error() string {
 type Sensor struct {
 	gorm.Model
 	Name 		string `gorm:"not null"`
+	SensorType 	int    `gorm:"not null; default:0"`
 	Unit 		string `gorm:"not null"`
-	Interval 	int    `gorm:"not null"`
-	Tolerance 	int    `gorm:"not null"`
-	Alarm 		bool   `gorm:"not null"`
+	Interval 	int    `gorm:"not null; default:60"`
+	Tolerance 	int    `gorm:"not null; default:10"`
+	Alarm 		bool   `gorm:"not null; default:false"`
 	AlarmType 	int
 	AlarmLow 	float64
 	AlarmHigh 	float64
 	Node		Node   `gorm:"foreignKey:NodeID"`
 	NodeID		uint
+}
+
+var SensorType = map[int]string{
+	0: "Generic",
+	1: "Pressure",
+	2: "Flow",
+	3: "Temperature",
 }
 
 var AlarmType = map[int]string{
@@ -40,6 +48,9 @@ func (s *Sensor) TableName() string {
 }
 
 func (s *Sensor) CreateSensor(db *gorm.DB) error {
+	if s.SensorType < 0 || s.SensorType > 3 {
+		return Error{"Tipe sensor tidak valid"}
+	}
 	if s.Alarm && (s.AlarmType < 0 || s.AlarmType > 3) {
 		return Error{"Tipe alarm tidak valid"}
 	}
