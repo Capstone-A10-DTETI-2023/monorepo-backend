@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
 	"github.com/jackc/pgx/v5"
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat"
 	"gorm.io/gorm"
 )
 
@@ -182,4 +184,62 @@ func CalculateResidualMatrix(db *gorm.DB, dbTs *pgx.Conn) (*mat.Dense, error) {
 	}
 
 	return resMat, nil
+}
+
+func GetLeakageNode(sensMat *mat.Dense, resMat *mat.Dense, db *gorm.DB) (int, error) {
+	if sensMat == nil || resMat == nil {
+		return -1, Error{"Sensitivity matrix or residual matrix is nil"}
+	}
+
+	if sensMat.RawMatrix().Rows != sensMat.RawMatrix().Cols {
+		return -1, Error{"Sensitivity matrix is not square"}
+	}
+
+	if sensMat.RawMatrix().Cols != resMat.RawMatrix().Rows {
+		return -1, Error{"Sensitivity matrix cols and residual matrix rows are not equal"}
+	}
+
+	nodesId, nodeCount, err := GetNodesId(db)
+	if err != nil {
+		return -1, err
+	}
+
+	var correlation []float64
+	for i := 0; i < nodeCount; i++ {
+		sensMatCol := mat.Col(nil, i, sensMat)
+		resMatCol := mat.Col(nil, 0, resMat)
+		matSRStack := mat.NewDense(2, len(sensMatCol), nil)
+		matSRStack.SetRow(0, sensMatCol)
+		matSRStack.SetRow(1, resMatCol)
+		matRRStack := mat.NewDense(2, len(resMatCol), nil)
+		matRRStack.SetRow(0, resMatCol)
+		matRRStack.SetRow(1, resMatCol)
+
+		matCovSR := mat.NewSymDense(2, nil)
+		stat.CovarianceMatrix(matCovSR, matSRStack, nil)
+		matCovRR := mat.NewSymDense(2, nil)
+		stat.CovarianceMatrix(matCovRR, matRRStack, nil)
+
+		expCovSR := stat.Mean(matCovSR.RawSymmetric().Data, nil)
+		expCovRR := stat.Mean(matCovRR.RawSymmetric().Data, nil)
+
+		correlation = append(correlation, expCovSR/math.Sqrt(expCovRR*expCovSR))
+	}
+
+	var (
+		maxCorr float64
+		maxCorrIdx int
+	)
+	maxCorr = math.Inf(-1)
+
+	for i := 0; i < nodeCount; i++ {
+		if correlation[i] > maxCorr {
+			maxCorr = correlation[i]
+			maxCorrIdx = i
+		}
+	}
+
+	nodeLeaking := nodesId[maxCorrIdx]
+
+	return nodeLeaking, nil
 }
