@@ -41,21 +41,24 @@ func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 
 	var (
 		leakSens []float64
+		nonLeakSens []float64
 		refPres []float64
 	)
-	rows, err = db.Table("nodes").Select("nodes.leakage_sens, syssetting_node_pressure_ref.pressure").Joins("left join syssetting_node_pressure_ref on syssetting_node_pressure_ref.node_id = nodes.id").Rows()
+	rows, err = db.Table("nodes").Select("nodes.leakage_sens, nodes.non_leak_sens, syssetting_node_pressure_ref.pressure").Joins("left join syssetting_node_pressure_ref on syssetting_node_pressure_ref.node_id = nodes.id").Order("nodes.id ASC").Rows()
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var refPre float64
 		var leakSen float64
-		rows.Scan(&leakSen, &refPre)
+		var nonLeakSen float64
+		rows.Scan(&leakSen, &nonLeakSen, &refPre)
 		if refPre == -1 {
 			return nil, Error{"Reference pressure not set"}
 		}
 		refPres = append(refPres, refPre)
 		leakSens = append(leakSens, leakSen)
+		nonLeakSens = append(nonLeakSens, nonLeakSen)
 	}
 
 
@@ -64,15 +67,16 @@ func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 	for i := 0; i < int(nodeCount); i++ {
 		for j := 0; j < int(nodeCount); j++ {
 			leakSens := leakSens[i]
+			nonLeakSens := nonLeakSens[i]
 			if leakSens == -1 {
 				leakSens = defLeakSens
 			}
 			
 			var leakPres float64
 			if i == j {
-				leakPres = refPres[j] * leakSens - refPres[j]
+				leakPres = refPres[j] * (1-leakSens) - refPres[j]
 			} else {
-				leakPres = refPres[j] - refPres[j] * leakSens * defNonLeakSens
+				leakPres = refPres[j] * nonLeakSens - refPres[j]
 			}
 
 			sensMat.Set(i, j, leakPres)

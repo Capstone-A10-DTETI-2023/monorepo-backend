@@ -16,6 +16,7 @@ type NodeResponse struct {
 	Coordinate []string  `json:"coordinate"`
 	CalcLeakage bool `json:"calc_leakage"`
 	LeakageSens float64 `json:"leakage_sens"`
+	NonLeakSens float64 `json:"non_leak_sens"`
 }
 
 func (c *NodeController) RegisterNewNode(ctx *fiber.Ctx) error {
@@ -61,6 +62,7 @@ func (c *NodeController) GetAllNodes(ctx *fiber.Ctx) error {
 			Coordinate: []string{node.Latitude, node.Longitude},
 			CalcLeakage: node.CalcLeakage,
 			LeakageSens: node.LeakageSens,
+			NonLeakSens: node.NonLeakSens,
 		})
 	}
 

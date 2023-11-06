@@ -9,6 +9,7 @@ type Node struct {
 	Longitude	string `gorm:"not null"`
 	CalcLeakage bool `gorm:"not null; default:false"`
 	LeakageSens float64 `gorm:"not null; default:-1"`
+	NonLeakSens float64 `gorm:"not null; default:-1"`
 }
 
 func MigrateNode(db *gorm.DB) {
