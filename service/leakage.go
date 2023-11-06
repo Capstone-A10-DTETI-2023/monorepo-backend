@@ -128,7 +128,8 @@ func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (map[int]float64, error) {
 	sensorPresData := make(map[int]float64)
 
 	var sensorsId []int
-	rows, err := db.Table("sensors").Select("sensors.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
+
+	rows, err := db.Table("sensors").Select("sensors.id").Distinct("nodes.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
 	if err != nil {
 		return sensorPresData, err
 	}
