@@ -86,13 +86,51 @@ func CalculateSensMatrix(db *gorm.DB) (*mat.Dense, error) {
 	return sensMat, nil
 }
 
-func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (*map[int]float64, error) {
+func GetNodesId(db *gorm.DB) ([]int, int, error) {
+	var nodesId []int
+	rows, err := db.Table("nodes").Select("nodes.id").Where("calc_leakage = ?", true).Order("nodes.id ASC").Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var nodeId int
+		rows.Scan(&nodeId)
+		nodesId = append(nodesId, nodeId)
+	}
+
+	nodeCount := len(nodesId)
+
+	return nodesId, nodeCount, nil
+}
+
+func GetRefPressure(db *gorm.DB) (map[int]float64, error) {
+	refPresData := make(map[int]float64)
+
+	rows, err := db.Table("nodes").Select("nodes.id, syssetting_node_pressure_ref.pressure").Joins("left join syssetting_node_pressure_ref on syssetting_node_pressure_ref.node_id = nodes.id").Order("nodes.id ASC").Rows()
+	if err != nil {
+		return refPresData, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var nodeId int
+		var refPre float64
+		rows.Scan(&nodeId, &refPre)
+		if refPre == -1 {
+			return refPresData, Error{"Reference pressure not set"}
+		}
+		refPresData[nodeId] = refPre
+	}
+	return refPresData, nil
+}
+
+func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (map[int]float64, error) {
 	sensorPresData := make(map[int]float64)
 
 	var sensorsId []int
-	rows, err := db.Table("sensors").Select("sensors.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Rows()
+	rows, err := db.Table("sensors").Select("sensors.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
 	if err != nil {
-		return &sensorPresData, err
+		return sensorPresData, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -107,11 +145,40 @@ func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (*map[int]float64, error) 
 		data := dbTs.QueryRow(context.Background(), query)
 		value := "0"
 		if err := data.Scan(&value); (err != nil && err != pgx.ErrNoRows) {
-			return &sensorPresData, err
+			return sensorPresData, err
 		}
 		valueFloat, _ := strconv.ParseFloat(value, 64)
 		sensorPresData[id] = valueFloat
 	}
 	log.Println(sensorPresData)
-	return &sensorPresData, nil
+	return sensorPresData, nil
+}
+
+func CalculateResidualMatrix(db *gorm.DB, dbTs *pgx.Conn) (*mat.Dense, error) {
+	nodesId, nodeCount, err := GetNodesId(db)
+	if err != nil {
+		return nil, err
+	}
+	latestSensData, err := GetLatestSensorData(db, dbTs)
+	if err != nil {
+		return nil, err
+	}
+	refPresData, err := GetRefPressure(db)
+	if err != nil {
+		return nil, err
+	}
+
+
+	resMat := mat.NewDense(nodeCount, 1, nil)
+
+	for i := 0; i < nodeCount; i++ {
+		nodeId := nodesId[i]
+		refPres := refPresData[nodeId]
+		latestPres := latestSensData[nodeId]
+		residual := latestPres - refPres
+
+		resMat.Set(i, 0, residual)
+	}
+
+	return resMat, nil
 }
