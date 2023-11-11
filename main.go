@@ -189,6 +189,7 @@ func bootstrap() error {
 	model.BootstrapPermission(db)
 	model.BootstrapSystemSetting(db)
 	model.DropNodeData()
+	model.MigrateNodeData()
 	log.Println("Bootstrap completed")
 	return nil
 }
