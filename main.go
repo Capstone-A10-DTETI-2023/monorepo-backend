@@ -152,6 +152,7 @@ func server() {
 	leakage.Get("/sensmat", leakageController.GetSensMat)
 	leakage.Get("/resmat", leakageController.GetResidualMatrix)
 	leakage.Get("/sensor/last", leakageController.GetLatestPresSensorData)
+	leakage.Get("/status", leakageController.GetLeakageStatus)
 
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)

@@ -63,3 +63,26 @@ func (c *LeakageController) GetResidualMatrix(ctx *fiber.Ctx) error {
 		"data":    fResMatStr,
 	})
 }
+
+func (c *LeakageController) GetLeakageStatus(ctx *fiber.Ctx) error {
+	dbTs := model.ConnectDBTS()
+
+	sensMat, err := service.CalculateSensMatrix(c.DB)
+	if err != nil {
+		return err
+	}
+	resMat, err := service.CalculateResidualMatrix(c.DB, dbTs)
+	if err != nil {
+		return err
+	}
+
+	nodeLeaking, err := service.GetLeakageNode(sensMat, resMat, c.DB)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"node_leak":    nodeLeaking,
+	})
+}
