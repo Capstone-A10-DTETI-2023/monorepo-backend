@@ -40,6 +40,7 @@ func ConnectMQTT(dbData *gorm.DB) mqtt.Client {
 	messageReceiveHandler := func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("MQTT: Received message from topic: %s\n", msg.Topic())
 		payloadStr := string(msg.Payload())
+		log.Println(payloadStr)
 
 		var NodeSensorData model.NodeSensorData
 		if err := json.Unmarshal([]byte(payloadStr), &NodeSensorData); err != nil {
