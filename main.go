@@ -188,6 +188,7 @@ func bootstrap() error {
 	model.BootstrapAccountNotif(db)
 	model.BootstrapPermission(db)
 	model.BootstrapSystemSetting(db)
+	model.DropNodeData()
 	log.Println("Bootstrap completed")
 	return nil
 }

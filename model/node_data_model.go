@@ -33,6 +33,22 @@ func ConnectDBTS() *pgx.Conn {
 	return utils.ConnectTSDB()
 }
 
+func DropNodeData() {
+	db := ConnectDBTS()
+	defer db.Close(context.Background())
+	dropSensorDataTable := fmt.Sprintf("DROP TABLE IF EXISTS %s", "sensor_data")
+	_, err := db.Exec(context.Background(), dropSensorDataTable)
+	if err != nil {
+		panic(err)
+	}
+
+	dropActuatorDataTable := fmt.Sprintf("DROP TABLE IF EXISTS %s", "actuator_data")
+	_, err = db.Exec(context.Background(), dropActuatorDataTable)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func MigrateNodeData() {
 	db := ConnectDBTS()
 	defer db.Close(context.Background())
