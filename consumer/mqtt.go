@@ -59,6 +59,7 @@ func ConnectMQTT(dbData *gorm.DB) mqtt.Client {
 	opts.SetPassword(_mqttPass)
 	opts.OnConnect = connectHandler
 	opts.OnConnectionLost = disconnectHandler
+	opts.SetOrderMatters(false)
 	opts.SetDefaultPublishHandler(messageReceiveHandler)
 
 	client := mqtt.NewClient(opts)
