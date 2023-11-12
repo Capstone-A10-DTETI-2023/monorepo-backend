@@ -207,24 +207,30 @@ func GetLeakageNode(sensMat *mat.Dense, resMat *mat.Dense, db *gorm.DB) (int, er
 	var correlation []float64
 	for i := 0; i < nodeCount; i++ {
 		sensMatCol := mat.Col(nil, i, sensMat)
-		resMatCol := mat.Col(nil, 0, resMat.T())
+		log.Println(sensMatCol)
+		resMatCol := mat.Col(nil, 0, resMat)
+		log.Println(resMatCol)
 		matSRStack := mat.NewDense(2, len(sensMatCol), nil)
 		matSRStack.SetRow(0, sensMatCol)
 		matSRStack.SetRow(1, resMatCol)
+		log.Printf("matSRStack: %.2g", mat.Formatted(matSRStack, mat.FormatMATLAB()))
 		matRRStack := mat.NewDense(2, len(resMatCol), nil)
 		matRRStack.SetRow(0, resMatCol)
 		matRRStack.SetRow(1, resMatCol)
+		log.Printf("matRRStack: %.2g", mat.Formatted(matRRStack, mat.FormatMATLAB()))
 
 		matCovSR := mat.NewSymDense(2, nil)
-		stat.CovarianceMatrix(matCovSR, matSRStack, nil)
+		stat.CovarianceMatrix(matCovSR, matSRStack.T(), nil)
 		matCovRR := mat.NewSymDense(2, nil)
-		stat.CovarianceMatrix(matCovRR, matRRStack, nil)
+		stat.CovarianceMatrix(matCovRR, matRRStack.T(), nil)
 
 		expCovSR := stat.Mean(matCovSR.RawSymmetric().Data, nil)
 		expCovRR := stat.Mean(matCovRR.RawSymmetric().Data, nil)
 
 		correlation = append(correlation, expCovSR/math.Sqrt(expCovRR*expCovSR))
 	}
+
+	log.Println(correlation)
 
 	var (
 		maxCorr float64
@@ -238,6 +244,10 @@ func GetLeakageNode(sensMat *mat.Dense, resMat *mat.Dense, db *gorm.DB) (int, er
 			maxCorrIdx = i
 		}
 	}
+
+	if maxCorr == math.Inf(-1) || maxCorr == math.Inf(1) {
+		return -1, Error{"No leak found"}
+	} 
 
 	nodeLeaking := nodesId[maxCorrIdx]
 
