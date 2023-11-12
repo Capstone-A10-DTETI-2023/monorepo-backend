@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/consumer"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/controller"
@@ -158,8 +157,7 @@ func server() {
 	leakage.Get("/status", leakageController.GetLeakageStatus)
 
 	log.Println("Starting scheduler")
-	jakartaTime, _ := time.LoadLocation("Asia/Jakarta") 
-   	scheduler := cron.New(cron.WithLocation(jakartaTime))
+   	scheduler := cron.New()
 	scheduler.AddFunc("*/1 * * * *", scheduleLeakDetection)
 	go scheduler.Start()
 
