@@ -61,7 +61,8 @@ func server() {
 	// Initialize MQTT Connection
 	go func(){
 		db := utils.ConnectDB()
-		mqtt := consumer.ConnectMQTT(db)
+		websocket := utils.ConnectWS()
+		mqtt := consumer.ConnectMQTT(db, websocket)
 		consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
 	}()
 
@@ -205,6 +206,8 @@ func scheduleLeakDetection() {
 	dbPG := utils.ConnectDB()
 	dbTs := model.ConnectDBTS()
 
+	websocket := utils.ConnectWS()
+
 	sensMat, _ := service.CalculateSensMatrix(dbPG)
 	resMat, _ := service.CalculateResidualMatrix(dbPG, dbTs)
 	nodeLeaking, _ := service.GetLeakageNode(sensMat, resMat, dbPG)
@@ -223,5 +226,8 @@ func scheduleLeakDetection() {
 		for _, phone := range phoneNum {
 			utils.SendWAMessage(phone, message, "0")
 		}
+
+		data := map[string]string{"node_leak": fmt.Sprint(nodeLeaking)}
+		websocket.Trigger("my-channel", "leakage", data)
 	}
 }

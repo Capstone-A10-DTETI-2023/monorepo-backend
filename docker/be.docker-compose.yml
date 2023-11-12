@@ -8,6 +8,10 @@ services:
       - .env.server
     environment:
       TOKEN_WA: ${TOKEN_WA}
+      PUSHER_APP_ID: ${PUSHER_APP_ID}
+      PUSHER_APP_KEY: ${PUSHER_APP_KEY}
+      PUSHER_APP_SECRET: ${PUSHER_APP_SECRET}
+      PUSHER_APP_CLUSTER: ${PUSHER_APP_CLUSTER}
     networks:
       - gateway_proxymanager
     build:
