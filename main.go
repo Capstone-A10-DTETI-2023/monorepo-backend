@@ -16,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/robfig/cron/v3"
 
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -156,12 +157,11 @@ func server() {
 	leakage.Get("/sensor/last", leakageController.GetLatestPresSensorData)
 	leakage.Get("/status", leakageController.GetLeakageStatus)
 
-	go func() {
-		err := scheduleLeakDetection()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	log.Println("Starting scheduler")
+	jakartaTime, _ := time.LoadLocation("Asia/Jakarta") 
+   	scheduler := cron.New(cron.WithLocation(jakartaTime))
+	scheduler.AddFunc("*/1 * * * *", scheduleLeakDetection)
+	go scheduler.Start()
 
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
@@ -203,41 +203,28 @@ func bootstrap() error {
 	return nil
 }
 
-func scheduleLeakDetection() error {
+func scheduleLeakDetection() {
 	dbPG := utils.ConnectDB()
 	dbTs := model.ConnectDBTS()
-	
-	lastRun := time.Now().Add(-time.Minute * 30)
-	for {
-		curTime := time.Now()
-		if curTime.Sub(lastRun).Seconds() >= float64(30) {
-			lastRun = curTime
-			log.Println("Running leak detection")
-			
+	defer dbTs.Close(context.Background())
 
-			sensMat, _ := service.CalculateSensMatrix(dbPG)
-			resMat, _ := service.CalculateResidualMatrix(dbPG, dbTs)
-			nodeLeaking, _ := service.GetLeakageNode(sensMat, resMat, dbPG)
+	sensMat, _ := service.CalculateSensMatrix(dbPG)
+	resMat, _ := service.CalculateResidualMatrix(dbPG, dbTs)
+	nodeLeaking, _ := service.GetLeakageNode(sensMat, resMat, dbPG)
+	if nodeLeaking != -1 {
+		log.Println("Node " + fmt.Sprint(nodeLeaking) + " terdeteksi bocor")
+		var phoneNum []string
+		rows, _ := dbPG.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+		defer rows.Close()
+		for rows.Next() {
+			var phone string
+			rows.Scan(&phone)
+			phoneNum = append(phoneNum, phone)
+		}
 
-			if nodeLeaking != -1 {
-				log.Println("Node " + fmt.Sprint(nodeLeaking) + " terdeteksi bocor")
-				var phoneNum []string
-				rows, err := dbPG.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
-				if err != nil {
-					return err
-				}
-				defer rows.Close()
-				for rows.Next() {
-					var phone string
-					rows.Scan(&phone)
-					phoneNum = append(phoneNum, phone)
-				}
-
-				message := "Halo! Node " + fmt.Sprint(nodeLeaking) + " terdeteksi bocor. Silahkan cek node tersebut."
-				for _, phone := range phoneNum {
-					utils.SendWAMessage(phone, message, "0")
-				}
-			}
+		message := "Halo! Node " + fmt.Sprint(nodeLeaking) + " terdeteksi bocor. Silahkan cek node tersebut."
+		for _, phone := range phoneNum {
+			utils.SendWAMessage(phone, message, "0")
 		}
 	}
 }
