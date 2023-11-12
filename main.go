@@ -204,7 +204,6 @@ func bootstrap() error {
 func scheduleLeakDetection() {
 	dbPG := utils.ConnectDB()
 	dbTs := model.ConnectDBTS()
-	defer dbTs.Close(context.Background())
 
 	sensMat, _ := service.CalculateSensMatrix(dbPG)
 	resMat, _ := service.CalculateResidualMatrix(dbPG, dbTs)

@@ -130,21 +130,22 @@ func GetRefPressure(db *gorm.DB) (map[int]float64, error) {
 func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (map[int]float64, error) {
 	sensorPresData := make(map[int]float64)
 	sensorPresTS := make(map[int]time.Time)
-	sensorTimeTolerance := make(map[int]int)
+	// sensorTimeTolerance := make(map[int]int)
 
 	var sensorsId []int
 
-	rows, err := db.Table("sensors").Select("sensors.id, sensors.tolerance").Distinct("nodes.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
+	rows, err := db.Table("sensors").Select("sensors.id").Distinct("nodes.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
 	if err != nil {
 		return sensorPresData, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var sensId, sensTol int
-		rows.Scan(&sensId, &sensTol)
+		var sensId int
+		rows.Scan(&sensId)
 		sensorsId = append(sensorsId, sensId)
-		sensorTimeTolerance[sensId] = sensTol
+		// sensorTimeTolerance[sensId] = sensTol
 	}
+	log.Println(sensorsId)
 
 	for _, id := range sensorsId {
 		sensorId := strconv.Itoa(id)
