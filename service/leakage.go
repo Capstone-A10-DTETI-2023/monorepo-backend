@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"strconv"
+	"time"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
 	"github.com/jackc/pgx/v5"
@@ -128,32 +129,45 @@ func GetRefPressure(db *gorm.DB) (map[int]float64, error) {
 
 func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (map[int]float64, error) {
 	sensorPresData := make(map[int]float64)
+	sensorPresTS := make(map[int]time.Time)
+	sensorTimeTolerance := make(map[int]int)
 
 	var sensorsId []int
 
-	rows, err := db.Table("sensors").Select("sensors.id").Distinct("nodes.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
+	rows, err := db.Table("sensors").Select("sensors.id, sensors.tolerance").Distinct("nodes.id").Joins("left join nodes on nodes.id = sensors.node_id").Where("nodes.calc_leakage = ?", true).Where("sensors.sensor_type = ?", 1).Order("nodes.id ASC").Rows()
 	if err != nil {
 		return sensorPresData, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var sensId int
-		rows.Scan(&sensId)
+		var sensId, sensTol int
+		rows.Scan(&sensId, &sensTol)
 		sensorsId = append(sensorsId, sensId)
+		sensorTimeTolerance[sensId] = sensTol
 	}
 
 	for _, id := range sensorsId {
 		sensorId := strconv.Itoa(id)
-		query := fmt.Sprintf("SELECT value FROM %s WHERE sensor_id = '%s' ORDER BY timestamp DESC LIMIT 1", "sensor_data", sensorId)
+		query := fmt.Sprintf("SELECT timestamp,value FROM %s WHERE sensor_id = '%s' ORDER BY timestamp DESC LIMIT 1", "sensor_data", sensorId)
 		data := dbTs.QueryRow(context.Background(), query)
 		value := "0"
-		if err := data.Scan(&value); (err != nil && err != pgx.ErrNoRows) {
+		var timestamp time.Time
+		if err := data.Scan(&timestamp, &value); (err != nil && err != pgx.ErrNoRows) {
 			return sensorPresData, err
 		}
 		valueFloat, _ := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return sensorPresData, err
+		}
 		sensorPresData[id] = valueFloat
+		sensorPresTS[id] = timestamp
 	}
-	log.Println(sensorPresData)
+
+	for _, id := range sensorsId {
+		if time.Since(sensorPresTS[id]).Seconds() > float64(sensorTimeTolerance[id]) {
+			return sensorPresData, Error{"Sensor data is outdated. Check sensor connection."}
+		}
+	}
 	return sensorPresData, nil
 }
 
@@ -207,17 +221,17 @@ func GetLeakageNode(sensMat *mat.Dense, resMat *mat.Dense, db *gorm.DB) (int, er
 	var correlation []float64
 	for i := 0; i < nodeCount; i++ {
 		sensMatCol := mat.Col(nil, i, sensMat)
-		log.Println(sensMatCol)
+		// log.Println(sensMatCol)
 		resMatCol := mat.Col(nil, 0, resMat)
-		log.Println(resMatCol)
+		// log.Println(resMatCol)
 		matSRStack := mat.NewDense(2, len(sensMatCol), nil)
 		matSRStack.SetRow(0, sensMatCol)
 		matSRStack.SetRow(1, resMatCol)
-		log.Printf("matSRStack: %.2g", mat.Formatted(matSRStack, mat.FormatMATLAB()))
+		// log.Printf("matSRStack: %.2g", mat.Formatted(matSRStack, mat.FormatMATLAB()))
 		matRRStack := mat.NewDense(2, len(resMatCol), nil)
 		matRRStack.SetRow(0, resMatCol)
 		matRRStack.SetRow(1, resMatCol)
-		log.Printf("matRRStack: %.2g", mat.Formatted(matRRStack, mat.FormatMATLAB()))
+		// log.Printf("matRRStack: %.2g", mat.Formatted(matRRStack, mat.FormatMATLAB()))
 
 		matCovSR := mat.NewSymDense(2, nil)
 		stat.CovarianceMatrix(matCovSR, matSRStack.T(), nil)
