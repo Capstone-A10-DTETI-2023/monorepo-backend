@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/consumer"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/controller"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/middleware"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
+	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/service"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -154,6 +156,13 @@ func server() {
 	leakage.Get("/sensor/last", leakageController.GetLatestPresSensorData)
 	leakage.Get("/status", leakageController.GetLeakageStatus)
 
+	go func() {
+		err := scheduleLeakDetection()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	// Start Fiber App
 	listenAddr := fmt.Sprintf("%s:%s", _appHost, _appPort)
     log.Fatal(app.Listen(listenAddr))
@@ -192,4 +201,43 @@ func bootstrap() error {
 	model.MigrateNodeData()
 	log.Println("Bootstrap completed")
 	return nil
+}
+
+func scheduleLeakDetection() error {
+	dbPG := utils.ConnectDB()
+	dbTs := model.ConnectDBTS()
+	
+	lastRun := time.Now().Add(-time.Minute * 30)
+	for {
+		curTime := time.Now()
+		if curTime.Sub(lastRun).Seconds() >= float64(30) {
+			lastRun = curTime
+			log.Println("Running leak detection")
+			
+
+			sensMat, _ := service.CalculateSensMatrix(dbPG)
+			resMat, _ := service.CalculateResidualMatrix(dbPG, dbTs)
+			nodeLeaking, _ := service.GetLeakageNode(sensMat, resMat, dbPG)
+
+			if nodeLeaking != -1 {
+				log.Println("Node " + fmt.Sprint(nodeLeaking) + " terdeteksi bocor")
+				var phoneNum []string
+				rows, err := dbPG.Table("users").Select("users.phone_num").Joins("left join notifications on notifications.user_id = users.id").Where("notifications.whatsapp = ?", true).Rows()
+				if err != nil {
+					return err
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var phone string
+					rows.Scan(&phone)
+					phoneNum = append(phoneNum, phone)
+				}
+
+				message := "Halo! Node " + fmt.Sprint(nodeLeaking) + " terdeteksi bocor. Silahkan cek node tersebut."
+				for _, phone := range phoneNum {
+					utils.SendWAMessage(phone, message, "0")
+				}
+			}
+		}
+	}
 }

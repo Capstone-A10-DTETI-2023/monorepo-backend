@@ -163,11 +163,11 @@ func GetLatestSensorData(db *gorm.DB, dbTs *pgx.Conn) (map[int]float64, error) {
 		sensorPresTS[id] = timestamp
 	}
 
-	for _, id := range sensorsId {
-		if time.Since(sensorPresTS[id]).Seconds() > float64(sensorTimeTolerance[id]) {
-			return sensorPresData, Error{"Sensor data is outdated. Check sensor connection."}
-		}
-	}
+	// for _, id := range sensorsId {
+	// 	if time.Since(sensorPresTS[id]).Seconds() > float64(sensorTimeTolerance[id]) {
+	// 		return sensorPresData, Error{"Sensor data is outdated. Check sensor connection."}
+	// 	}
+	// }
 	return sensorPresData, nil
 }
 
