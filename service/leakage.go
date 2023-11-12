@@ -260,7 +260,7 @@ func GetLeakageNode(sensMat *mat.Dense, resMat *mat.Dense, db *gorm.DB) (int, er
 		}
 	}
 
-	if maxCorr == math.Inf(-1) || maxCorr == math.Inf(1) {
+	if maxCorr > 4 {
 		return -1, Error{"No leak found"}
 	} 
 
