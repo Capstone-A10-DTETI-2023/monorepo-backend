@@ -207,7 +207,7 @@ func GetLeakageNode(sensMat *mat.Dense, resMat *mat.Dense, db *gorm.DB) (int, er
 	var correlation []float64
 	for i := 0; i < nodeCount; i++ {
 		sensMatCol := mat.Col(nil, i, sensMat)
-		resMatCol := mat.Col(nil, 0, resMat)
+		resMatCol := mat.Col(nil, 0, resMat.T())
 		matSRStack := mat.NewDense(2, len(sensMatCol), nil)
 		matSRStack.SetRow(0, sensMatCol)
 		matSRStack.SetRow(1, resMatCol)
