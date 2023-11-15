@@ -62,7 +62,7 @@ func server() {
 	go func(){
 		db := utils.ConnectDB()
 		websocket := utils.ConnectWS()
-		mqtt := consumer.ConnectMQTT(db, websocket)
+		mqtt := consumer.ConnectConsumerMQTT(db, websocket)
 		consumer.SubMQTT(mqtt, os.Getenv("MQTT_TOPIC_CONSUMER"), 0)
 	}()
 
@@ -136,12 +136,23 @@ func server() {
 	sensor.Put("/:id", sensorController.UpdateSensorByID)
 	sensor.Get("/node/:node_id", sensorController.GetSensorByNodeID)
 
-	sensorData := app.Group("/tsdata")
-	sensorData.Use(middleware.IsAuthenticated)
+	actuator := app.Group("/actuators")
+	actuator.Use(middleware.IsAuthenticated)
+	actuatorController := &controller.ActuatorController{DB: db}
+	actuator.Post("/", actuatorController.CreateActuator)
+	actuator.Get("/", actuatorController.GetAllActuators)
+	actuator.Get("/:id", actuatorController.GetActuatorByID)
+	actuator.Put("/:id", actuatorController.UpdateActuatorByID)
+	actuator.Delete("/:id", actuatorController.DeleteActuatorByID)
+
+	tsData := app.Group("/tsdata")
+	tsData.Use(middleware.IsAuthenticated)
 	sensorDataController := &controller.SensorDataController{DB: db}
-	sensorData.Post("/sensor", sensorDataController.InsertDataSensor)
-	sensorData.Get("/sensor", sensorDataController.GetSensorData)
-	sensorData.Get("/sensor/last", sensorDataController.GetLastSensorData)
+	tsData.Post("/sensor", sensorDataController.InsertDataSensor)
+	tsData.Get("/sensor", sensorDataController.GetSensorData)
+	tsData.Get("/sensor/last", sensorDataController.GetLastSensorData)
+	actuatorDataController := &controller.ActuatorDataController{DB: db}
+	tsData.Post("/actuator", actuatorDataController.InsertDataActuator)
 
 	systemSettings := app.Group("/sys-setting")
 	systemSettings.Use(middleware.IsAuthenticated)
@@ -178,6 +189,7 @@ func migrate() error {
 	model.MigrateNotification(db)
 	model.MigrateNode(db)
 	model.MigrateSensor(db)
+	model.MigrateActuator(db)
 	model.MigrateNodePressureRef(db)
 	model.MigrateSystemSetting(db)
 	model.MigrateNodeData()

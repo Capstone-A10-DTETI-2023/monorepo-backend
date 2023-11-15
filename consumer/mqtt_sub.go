@@ -4,20 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/controller"
 	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/model"
+	"github.com/Capstone-A10-DTETI-2023/monorepo-backend/utils"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/pusher/pusher-http-go/v5"
 	"gorm.io/gorm"
-)
-
-var (
-	_mqttHost 		= os.Getenv("MQTT_HOST")
-	_mqttPort 		= os.Getenv("MQTT_PORT")
-	_mqttUser 		= os.Getenv("MQTT_USER")
-	_mqttPass 		= os.Getenv("MQTT_PASS")
 )
 
 type Error struct {
@@ -28,16 +21,7 @@ func (e Error) Error() string {
 	return e.Message
 }
 
-func ConnectMQTT(dbData *gorm.DB, websocket *pusher.Client) mqtt.Client {
-	dsn := "tcp://" + _mqttHost + ":" + _mqttPort
-
-	connectHandler := func(client mqtt.Client) {
-		log.Println("Connected to MQTT broker")
-	}
-	disconnectHandler := func(client mqtt.Client, err error) {
-		log.Printf("MQTT: Disconnected from MQTT broker: %v", err)
-	}
-
+func ConnectConsumerMQTT(dbData *gorm.DB, websocket *pusher.Client) mqtt.Client {
 	messageReceiveHandler := func(client mqtt.Client, msg mqtt.Message) {
 		log.Printf("MQTT: Received message from topic: %s\n", msg.Topic())
 		payloadStr := string(msg.Payload())
@@ -56,13 +40,7 @@ func ConnectMQTT(dbData *gorm.DB, websocket *pusher.Client) mqtt.Client {
 		}
 	}
 
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker(dsn)
-	opts.SetClientID("capstone-backend-a10")
-	opts.SetUsername(_mqttUser)
-	opts.SetPassword(_mqttPass)
-	opts.OnConnect = connectHandler
-	opts.OnConnectionLost = disconnectHandler
+	opts := utils.CreateMQTTOpts("mqtt-consumer-backend-a10")
 	opts.SetOrderMatters(false)
 	opts.SetDefaultPublishHandler(messageReceiveHandler)
 

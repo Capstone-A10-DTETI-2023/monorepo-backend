@@ -23,9 +23,17 @@ type NodeSensorDataGet struct {
 }
 
 type NodeActuatorData struct {
-	Timestamp 	interface{}     	`json:"timestamp"`
 	NodeID    	string          	`json:"node_id"`
 	ActuatorID  string          	`json:"actuator_id"`
+	Action   	string       		`json:"action"`
+	Value     	string       		`json:"value"`
+	Timestamp 	interface{}     	`json:"timestamp"`
+}
+
+type NodeActuatorDataMQTT struct {
+	NodeID   	string          	`json:"node_id"`
+	ActuatorID  string          	`json:"actuator_id"`
+	Action   	string       		`json:"action"`
 	Value     	string       		`json:"value"`
 }
 
@@ -62,7 +70,7 @@ func MigrateNodeData() {
 
 	initActuatorDataTable := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s) TIMESTAMP(timestamp) PARTITION BY DAY;", 
 		"actuator_data", 
-		"node_id SYMBOL INDEX, actuator_id SYMBOL INDEX, value SYMBOL INDEX, timestamp TIMESTAMP")
+		"node_id SYMBOL INDEX, actuator_id SYMBOL INDEX, action SYMBOL INDEX, value SYMBOL INDEX, timestamp TIMESTAMP")
 	_, err = db.Exec(context.TODO(), initActuatorDataTable)
 	if err != nil {
 		panic(err)
@@ -89,6 +97,27 @@ func (n *NodeSensorData) CreateNodeSensorData(db *pgx.Conn) error {
 	return nil
 }
 
+func (n *NodeActuatorData) CreateNodeActuatorData(db *pgx.Conn) error {
+	query := fmt.Sprintf("INSERT INTO %s (node_id, actuator_id, action, value, timestamp) VALUES ($1, $2, $3, $4, $5)", "actuator_data")
+	
+	_, err := db.Prepare(context.Background(), "insert_actuator_data", query)
+	if err != nil {
+		log.Printf("Error preparing insert actuator data: %v", err)
+		return err
+	}
+
+	_, err = db.Exec(context.Background(), "insert_actuator_data", n.NodeID, n.ActuatorID, n.Action, n.Value, n.Timestamp)
+	if err != nil {
+		log.Printf("Error inserting actuator data: %v", err)
+		return err
+	}
+
+	defer db.Close(context.Background())
+	log.Printf("Inserting actuator data: %v success", n)
+	return nil
+
+}
+
 func (n *NodeSensorData) CheckDuplicateSensorData(db *pgx.Conn) error {
 	query := fmt.Sprintf("SELECT value, timestamp FROM %s WHERE node_id = '%s' AND sensor_id = '%s' AND timestamp = '%s' LIMIT 1", "sensor_data", n.NodeID, n.SensorID, n.Timestamp)
 
@@ -107,6 +136,26 @@ func (n *NodeSensorData) CheckDuplicateSensorData(db *pgx.Conn) error {
 	}
 
 	log.Println("Duplicate sensor data found")
+	return fiber.ErrConflict
+}
+
+func (n *NodeActuatorData) CheckDuplicateActuatorData(db *pgx.Conn) error {
+	query := fmt.Sprintf("SELECT action, value, timestamp FROM %s WHERE node_id = '%s' AND actuator_id = '%s' AND timestamp = '%s' LIMIT 1", "actuator_data", n.NodeID, n.ActuatorID, n.Timestamp)
+
+	var dbData NodeActuatorData
+	data := db.QueryRow(context.TODO(), query)
+	if err := data.Scan(&dbData.Action, &dbData.Value, &dbData.Timestamp); err != nil {
+		log.Println(err)
+		if err != pgx.ErrNoRows {
+			return err
+		}
+		if err == pgx.ErrNoRows {
+			log.Printf("No duplicate actuator data found")
+			return nil
+		}
+	}
+
+	log.Println("Duplicate actuator data found")
 	return fiber.ErrConflict
 }
 
