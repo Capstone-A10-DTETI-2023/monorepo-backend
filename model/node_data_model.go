@@ -18,8 +18,8 @@ type NodeSensorData struct {
 }
 
 type NodeSensorDataGet struct {
-	Timestamp interface{}     	`json:"timestamp"`
-	Value    string     	`json:"value"`
+	Timestamp 	interface{}     	`json:"timestamp"`
+	Value   	string     			`json:"value"`
 }
 
 type NodeActuatorData struct {
@@ -34,7 +34,7 @@ type NodeActuatorDataMQTT struct {
 	NodeID   	string          	`json:"node_id"`
 	ActuatorID  string          	`json:"actuator_id"`
 	Action   	string       		`json:"action"`
-	Value     	string       		`json:"value"`
+	Value     	float64       		`json:"value"`
 }
 
 func ConnectDBTS() *pgx.Conn {
@@ -177,13 +177,26 @@ func GetSensorData(db *pgx.Conn, nodeID, sensorID, fromTs, toTs, orderBy, limit 
 	return dbData, nil
 }
 
-func (n *NodeSensorData) GetLastSensorData (db *pgx.Conn) (NodeSensorDataGet, error) {
+func (n *NodeSensorData) GetLastSensorData(db *pgx.Conn) (NodeSensorDataGet, error) {
 	query := fmt.Sprintf("SELECT value, timestamp FROM %s WHERE node_id = '%s' AND sensor_id = '%s' ORDER BY timestamp DESC LIMIT 1", "sensor_data", n.NodeID, n.SensorID)
 
 	var dbData NodeSensorDataGet
 	data := db.QueryRow(context.Background(), query)
 	if err := data.Scan(&dbData.Value, &dbData.Timestamp); err != nil {
 		log.Printf("Error querying sensor data: %v", err)
+		return dbData, err
+	}
+
+	return dbData, nil
+}
+
+func (n *NodeActuatorData) GetLastActuatorData(db *pgx.Conn) (NodeActuatorData, error) {
+	query := fmt.Sprintf("SELECT action, value, timestamp FROM %s WHERE node_id = '%s' AND actuator_id = '%s' ORDER BY timestamp DESC LIMIT 1", "actuator_data", n.NodeID, n.ActuatorID)
+
+	var dbData NodeActuatorData
+	data := db.QueryRow(context.Background(), query)
+	if err := data.Scan(&dbData.Action, &dbData.Value, &dbData.Timestamp); err != nil {
+		log.Printf("Error querying actuator data: %v", err)
 		return dbData, err
 	}
 

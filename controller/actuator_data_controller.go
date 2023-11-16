@@ -42,7 +42,7 @@ func InsertDataActuatorToDB(actuatorData model.NodeActuatorData, dbData *gorm.DB
 	dbTs := model.ConnectDBTS()
 	var actuator model.Actuator
 
-	if actuatorData.Action == "" || (actuatorData.Value == "" && (actuatorData.Action == "ON" || actuatorData.Action == "on" || actuatorData.Action == "OFF" || actuatorData.Action == "off")) {
+	if actuatorData.Action == "" {
 		return Error{"Missing required field"}
 	}
 
@@ -67,7 +67,7 @@ func InsertDataActuatorToDB(actuatorData model.NodeActuatorData, dbData *gorm.DB
 	mqttModel.NodeID = actuatorData.NodeID
 	mqttModel.ActuatorID = actuatorData.ActuatorID
 	mqttModel.Action = actuatorData.Action
-	mqttModel.Value = actuatorData.Value
+	mqttModel.Value, _ = strconv.ParseFloat(actuatorData.Value, 64)
 
 	mqttJSON, _ := json.Marshal(mqttModel)
 	mqttCli := producer.ConnectProducerMQTT()
@@ -75,3 +75,25 @@ func InsertDataActuatorToDB(actuatorData model.NodeActuatorData, dbData *gorm.DB
 
 	return nil
 }	
+
+func (c *ActuatorDataController) GetLastActuatorData (ctx *fiber.Ctx) error {
+	db := model.ConnectDBTS()
+
+	nodeID := ctx.Query("node_id")
+	actuatorID := ctx.Query("actuator_id")
+
+	var actuatorData model.NodeActuatorData
+	actuatorData.NodeID = nodeID
+	actuatorData.ActuatorID = actuatorID
+	actuatorData, err := actuatorData.GetLastActuatorData(db)
+	if err != nil {
+		return err
+	}
+	actuatorData.NodeID = nodeID
+	actuatorData.ActuatorID = actuatorID
+
+	return ctx.JSON(fiber.Map{
+		"message": "success",
+		"data":    actuatorData,
+	})
+}

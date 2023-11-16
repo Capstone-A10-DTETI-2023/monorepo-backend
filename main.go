@@ -153,6 +153,7 @@ func server() {
 	tsData.Get("/sensor/last", sensorDataController.GetLastSensorData)
 	actuatorDataController := &controller.ActuatorDataController{DB: db}
 	tsData.Post("/actuator", actuatorDataController.InsertDataActuator)
+	tsData.Get("/actuator/last", actuatorDataController.GetLastActuatorData)
 
 	systemSettings := app.Group("/sys-setting")
 	systemSettings.Use(middleware.IsAuthenticated)
